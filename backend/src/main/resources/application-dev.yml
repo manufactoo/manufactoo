@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:manufactoo}
+    username: ${DB_USER:manufactoo}
+    password: ${DB_PASSWORD:manufactoo_dev}
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    root: INFO
+    com.manufactoo: DEBUG
+    org.hibernate.SQL: DEBUG
+
+manufactoo:
+  cors:
+    allowed-origins: "http://localhost:5173,http://127.0.0.1:5173"
+  wizard:
+    # En dev, permite resetear el estado del wizard facilmente para repetir pruebas.
+    allow-reset: true
+  crypto:
+    # En dev, si no existe la clave todavia, se genera en un fichero local (no Docker secret).
+    master-key-init-path: ${MANUFACTOO_MASTER_KEY_INIT_PATH:./.dev-secrets/manufactoo_master_key}
+
+server:
+  port: 8080

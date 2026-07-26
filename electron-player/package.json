@@ -1,0 +1,68 @@
+{
+  "name": "manufactoo-player",
+  "productName": "Manufactoo Player",
+  "version": "1.0.0",
+  "description": "Runtime nativo de estaciones Manufactoo para PCs de planta: acceso a puerto serie, MQTT e impresion desde el navegador embebido.",
+  "license": "LGPL-3.0",
+  "private": true,
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "cross-env MANUFACTOO_PLAYER_WINDOWED=1 MANUFACTOO_BACKEND_URL=http://localhost:8080 MANUFACTOO_FRONTEND_URL=http://localhost:5173 electron --disable-crash-reporter .",
+    "start": "electron --disable-crash-reporter .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "dotenv": "^16.6.1",
+    "electron-updater": "^6.3.4",
+    "ipp": "^2.0.1",
+    "mqtt": "^5.10.1",
+    "serialport": "^12.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.manufactoo.player",
+    "productName": "Manufactoo Player",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "artifactName": "Manufactoo-Player-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://localhost:8080/api/player-releases",
+        "channel": "latest"
+      }
+    ]
+  },
+  "allowScripts": {
+    "electron@32.2.0": true,
+    "@serialport/bindings-cpp@12.0.1": true
+  }
+}

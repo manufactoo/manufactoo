@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: manufactoo-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      # 300MB para poder subir instaladores del Manufactoo Player (Electron);
+      # las subidas de imagenes (logo, avatar, assets de estacion) ya validan
+      # su propio limite mas estricto (2-3MB) en cada servicio.
+      max-file-size: 300MB
+      max-request-size: 300MB
+
+manufactoo:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      expiration-minutes: 480
+  crypto:
+    # Ruta al fichero de la clave maestra de 256 bits usada para cifrar
+    # las credenciales de Odoo (AES-256-GCM). En produccion se monta via
+    # Docker Compose Secrets en /run/secrets/manufactoo_master_key.
+    master-key-path: ${MANUFACTOO_MASTER_KEY_PATH:/run/secrets/manufactoo_master_key}
+    # Directorio alternativo, de escritura, usado SOLO quimica para generar
+    # la clave la primera vez si master-key-path aun no existe (bootstrap).
+    master-key-init-path: ${MANUFACTOO_MASTER_KEY_INIT_PATH:}
+  update-check:
+    # Opcional y desactivado por defecto: nunca se llama a GitHub sin que el
+    # usuario lo active explicitamente desde Configuracion (sin telemetria automatica).
+    enabled: ${MANUFACTOO_UPDATE_CHECK_ENABLED:false}
+    github-repo: ${MANUFACTOO_GITHUB_REPO:manufactoo/manufactoo}
+  version: ${MANUFACTOO_VERSION:0.1.0}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

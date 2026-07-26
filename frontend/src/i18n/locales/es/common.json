@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "Manufactoo"
+  },
+  "actions": {
+    "continue": "Continuar",
+    "back": "Atras",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "test": "Probar conexion",
+    "testing": "Probando...",
+    "finish": "Finalizar instalacion",
+    "edit": "Editar",
+    "logout": "Cerrar sesion",
+    "retry": "Reintentar",
+    "confirm": "Confirmar"
+  },
+  "nav": {
+    "groupGeneral": "General",
+    "groupTraceability": "Trazabilidad y genealogia",
+    "dashboard": "Panel",
+    "masterData": "Datos maestros",
+    "apps": "Aplicaciones",
+    "devices": "Dispositivos y eventos",
+    "stations": "Estaciones",
+    "settings": "Configuracion",
+    "profile": "Mi perfil"
+  },
+  "settings": {
+    "tabs": {
+      "general": "General",
+      "odoo": "Conexion Odoo",
+      "appearance": "Idioma y apariencia"
+    }
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "accentColor": "Color de acento"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "status": {
+    "connected": "Conectado",
+    "notConnected": "No conectado",
+    "neverTested": "Sin probar",
+    "success": "Correcto",
+    "failure": "Fallo"
+  },
+  "sectors": {
+    "METAL": "Metal",
+    "AUTOMOTIVE": "Automocion",
+    "FOOD_BEVERAGE": "Alimentacion y bebidas",
+    "PLASTICS": "Plastico",
+    "PHARMACEUTICAL": "Farmaceutica",
+    "MEDICAL": "Medica",
+    "AEROSPACE_DEFENSE": "Aeroespacial y defensa",
+    "INDUSTRIAL": "Industrial",
+    "ELECTRONICS": "Electronica",
+    "CHEMICAL": "Quimica",
+    "TEXTILE": "Textil",
+    "OTHER": "Otro"
+  }
+}

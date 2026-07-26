@@ -1,0 +1,389 @@
+{
+  "welcome": "Bienvenido a Manufactoo",
+  "apps": {
+    "title": "Aplicaciones",
+    "subtitle": "Instala funcionalidades adicionales de Manufactoo. Algunas apps dependen de otras.",
+    "install": "Instalar",
+    "uninstall": "Desinstalar",
+    "installed": "Instalada",
+    "notInstalled": "No instalada",
+    "version": "Version",
+    "missingDependencies": "Requiere instalar antes: {{apps}}",
+    "error": "No se pudo completar la operacion.",
+    "traceabilityGenealogy": {
+      "name": "Trazabilidad y genealogia",
+      "description": "Registra el recorrido de cada unidad por planta: dispositivos, estaciones y rutas de fabricacion."
+    }
+  },
+  "devices": {
+    "pageTitle": "Dispositivos y eventos",
+    "title": "Dispositivos",
+    "subtitle": "Dispositivos fisicos de planta: lectores, impresoras, maquinas...",
+    "add": "Anadir dispositivo",
+    "edit": "Editar dispositivo",
+    "name": "Nombre",
+    "direction": "Direccion",
+    "category": "Categoria",
+    "transport": "Conexion",
+    "enabled": "Activo",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "confirmDelete": "Eliminar este dispositivo?",
+    "empty": "No hay dispositivos todavia.",
+    "notInstalled": "Instala la app Trazabilidad y genealogia para gestionar dispositivos.",
+    "chooseDirection": "Elige entrada o salida",
+    "chooseCategory": "Elige el tipo de dispositivo",
+    "chooseTransport": "Elige como se conecta",
+    "connectionSection": "Datos de conexion",
+    "settingsSection": "Configuracion especifica",
+    "directions": {
+      "INPUT": "Entrada",
+      "OUTPUT": "Salida",
+      "BIDIRECTIONAL": "Bidireccional"
+    },
+    "categories": {
+      "BARCODE_SCANNER": "Lector de codigo de barras",
+      "RS232": "Entrada RS232 generica",
+      "PRINTER": "Impresora"
+    },
+    "transports": {
+      "SERIAL": "Puerto serie",
+      "USB_HID": "USB (emulacion de teclado)",
+      "IPP_CUPS": "Impresion en red (IPP/CUPS)",
+      "ZPL_RAW": "ZPL en bruto",
+      "ESC_POS": "ESC/POS en bruto"
+    },
+    "fields": {
+      "port": "Puerto (ej. COM3)",
+      "tcpPort": "Puerto",
+      "baudRate": "Velocidad (baudios)",
+      "dataBits": "Bits de datos",
+      "stopBits": "Bits de parada",
+      "parity": "Paridad",
+      "flowControl": "Control de flujo",
+      "lineEnding": "Fin de linea",
+      "encoding": "Codificacion",
+      "timeoutMs": "Timeout (ms)",
+      "host": "Host / IP",
+      "vendorId": "Vendor ID",
+      "productId": "Product ID",
+      "queue": "Cola de impresion"
+    },
+    "fieldOptions": {
+      "parity": {
+        "NONE": "Ninguna",
+        "EVEN": "Par",
+        "ODD": "Impar",
+        "MARK": "Marca",
+        "SPACE": "Espacio"
+      },
+      "flowControl": {
+        "NONE": "Ninguno",
+        "RTS_CTS": "RTS/CTS (hardware)",
+        "XON_XOFF": "XON/XOFF (software)"
+      },
+      "lineEnding": {
+        "NONE": "Ninguno",
+        "CR": "CR",
+        "LF": "LF",
+        "CRLF": "CRLF"
+      },
+      "encoding": {
+        "UTF8": "UTF-8",
+        "ASCII": "ASCII",
+        "LATIN1": "Latin-1"
+      }
+    }
+  },
+  "events": {
+    "title": "Eventos",
+    "subtitle": "Topics del broker MQTT embebido de Manufactoo. Un evento no es un dispositivo fisico: es un topic en el que Manufactoo escucha o publica.",
+    "add": "Anadir evento",
+    "edit": "Editar evento",
+    "name": "Nombre",
+    "topic": "Topic",
+    "direction": "Direccion",
+    "empty": "No hay eventos todavia.",
+    "confirmDelete": "Eliminar este evento?",
+    "directions": {
+      "SUBSCRIBE": "Escucha (suscripcion)",
+      "PUBLISH": "Publica"
+    },
+    "directionHints": {
+      "SUBSCRIBE": "Manufactoo escucha lo que la planta publica en este topic.",
+      "PUBLISH": "Manufactoo publica datos o comandos en este topic para que la planta los reciba."
+    }
+  },
+  "stations": {
+    "pageTitle": "Estaciones",
+    "subtitle": "Puestos fisicos de la fabrica. Diseña el layout de cada estacion sin escribir codigo; el operario lo usara en el dia a dia y generara datos de trazabilidad.",
+    "add": "Crear estacion",
+    "edit": "Editar estacion",
+    "name": "Nombre",
+    "description": "Descripcion",
+    "enabled": "Activa",
+    "empty": "No hay estaciones todavia.",
+    "confirmDelete": "Eliminar esta estacion?",
+    "notInstalled": "Instala la app Trazabilidad y genealogia para gestionar estaciones.",
+    "openBuilder": "Disenar layout",
+    "openRuntime": "Abrir (operario)",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "widgetCount": "{{count}} widgets",
+    "tabs": {
+      "stations": "Estaciones",
+      "routes": "Rutas",
+      "players": "Players"
+    },
+    "routes": {
+      "subtitle": "La secuencia de estaciones por las que debe pasar cada unidad de un producto. Impide que se salte un paso: cada estacion comprueba que la unidad ya paso por la anterior.",
+      "empty": "No hay rutas todavia.",
+      "add": "Crear ruta",
+      "addTitle": "Crear ruta",
+      "editTitle": "Editar ruta",
+      "name": "Nombre",
+      "product": "Producto",
+      "anyProduct": "Cualquier producto",
+      "identifierKey": "Clave identificadora",
+      "identifierKeyHint": "La clave de datos que identifica la unidad en cada estacion de la ruta (p. ej. \"serial\", \"orden\"). Cada estacion de la ruta debe capturar un dato con esta misma clave.",
+      "steps": "Pasos (secuencia de estaciones)",
+      "addStep": "Anadir paso",
+      "stepLabel": "Etiqueta del paso",
+      "noSteps": "Anade al menos una estacion.",
+      "needAtLeastOneStep": "La ruta necesita al menos un paso.",
+      "saveError": "No se pudo guardar la ruta.",
+      "confirmDelete": "Eliminar esta ruta?"
+    },
+    "players": {
+      "subtitle": "Puestos fisicos (PCs de fabrica) que ejecutan el Manufactoo Player. Emparejalos con una estacion para que puedan acceder a los dispositivos locales (puerto serie, MQTT, impresoras).",
+      "empty": "Todavia no se ha conectado ningun Player. Instalalo en un PC de la fabrica: mostrara un codigo de emparejamiento aqui.",
+      "name": "Nombre",
+      "station": "Estacion",
+      "status": "Estado",
+      "version": "Version",
+      "lastSeen": "Ultima conexion",
+      "noStation": "Sin estacion asignada",
+      "pendingCode": "Pendiente de emparejar:",
+      "paired": "Emparejado",
+      "expired": "Codigo caducado",
+      "assign": "Asignar",
+      "unpair": "Desemparejar",
+      "assignTitle": "Asignar Player a una estacion",
+      "confirmUnpair": "Desemparejar este Player? Tendra que volver a emparejarse desde cero."
+    },
+    "builder": {
+      "title": "Disenador de estacion",
+      "palette": "Widgets",
+      "paletteHint": "Arrastra un widget al layout, o haz clic para anadirlo al final.",
+      "canvas": "Layout",
+      "properties": "Propiedades",
+      "noSelection": "Selecciona un widget para editar sus propiedades.",
+      "emptyCanvas": "Anade widgets desde el panel de la izquierda para empezar a disenar.",
+      "back": "Volver",
+      "save": "Guardar layout",
+      "saved": "Layout guardado",
+      "error": "No se pudo guardar el layout.",
+      "screenTitle": "Titulo de la pantalla",
+      "preview": "Vista operario",
+      "screenN": "Pantalla {{n}}",
+      "addScreen": "Anadir pantalla"
+    },
+    "widget": {
+      "label": "Etiqueta",
+      "bindingKey": "Clave de datos",
+      "bindingKeyHint": "Nombre con el que se guarda el valor en trazabilidad (p. ej. orden, operario).",
+      "required": "Obligatorio",
+      "image": "Imagen",
+      "source": "Origen del valor",
+      "sourceKind": {
+        "NONE": "Manual",
+        "DEVICE": "Dispositivo",
+        "EVENT": "Evento (MQTT)"
+      },
+      "chooseDevice": "Elige el dispositivo",
+      "chooseEvent": "Elige el evento",
+      "sourceDeviceHint": "El dato de este dispositivo (p. ej. un lector) rellenara este campo.",
+      "sourceEventHint": "La estacion espera este topic y su valor rellena el campo.",
+      "lookupColumn": "Columna de coincidencia",
+      "chooseLookupColumn": "Elige la columna",
+      "lookupColumnHint": "El codigo leido (p. ej. el codigo de barras de la credencial) se buscara en esta columna; se guardara el registro encontrado y se mostrara su nombre.",
+      "dataSource": "Origen de datos",
+      "chooseDataSource": "Elige el origen",
+      "staticOptions": "Opciones (una por linea: valor|etiqueta)",
+      "position": "Posicion y tamano",
+      "x": "Columna (X)",
+      "y": "Fila (Y)",
+      "w": "Ancho",
+      "h": "Alto",
+      "delete": "Eliminar widget"
+    },
+    "types": {
+      "DROPDOWN": "Desplegable",
+      "TEXT_INPUT": "Texto",
+      "NUMBER_INPUT": "Numero",
+      "LABEL": "Etiqueta de texto",
+      "IMAGE": "Imagen",
+      "TABLE": "Tabla",
+      "BUTTON": "Boton"
+    },
+    "dataSources": {
+      "STATIC_LIST": "Lista estatica",
+      "ODOO_PRODUCTS": "Productos (Odoo)",
+      "ODOO_MANUFACTURING_ORDERS": "Ordenes de fabricacion (Odoo)",
+      "ODOO_OPERATORS": "Operarios (Odoo)",
+      "ODOO_BOMS": "Listas de materiales (Odoo)",
+      "ODOO_SERIALS": "Series/lotes (Odoo)"
+    },
+    "fields": {
+      "placeholder": "Texto de ayuda",
+      "min": "Minimo",
+      "max": "Maximo",
+      "text": "Texto",
+      "fit": "Ajuste de imagen",
+      "maxRows": "Maximo de filas",
+      "action": "Accion",
+      "targetScreen": "Pantalla destino (nº)",
+      "selectionMode": "Seleccion",
+      "valueColumn": "Columna de valor guardado"
+    },
+    "fieldOptions": {
+      "fit": {
+        "CONTAIN": "Contener",
+        "COVER": "Rellenar"
+      },
+      "action": {
+        "NEXT": "Siguiente pantalla",
+        "PREV": "Pantalla anterior",
+        "GOTO": "Ir a pantalla...",
+        "SUBMIT": "Finalizar y registrar"
+      },
+      "selectionMode": {
+        "NONE": "Solo mostrar",
+        "SINGLE": "Seleccion unica",
+        "MULTI": "Seleccion multiple"
+      }
+    },
+    "runtime": {
+      "submit": "Finalizar y registrar",
+      "submitted": "Registro guardado",
+      "submitError": "No se pudo guardar el registro.",
+      "loadOptionsError": "No se pudieron cargar los datos desde Odoo.",
+      "selectPlaceholder": "Selecciona...",
+      "back": "Volver",
+      "prev": "Atras",
+      "next": "Siguiente",
+      "emptyScreen": "Esta pantalla no tiene widgets todavia.",
+      "scanPlaceholder": "Escanea o pega el codigo y pulsa Enter",
+      "scanNotFound": "No se ha encontrado ningun registro con el codigo \"{{code}}\".",
+      "viaPlayer": "Conectado via Player",
+      "browserOnly": "Solo navegador: rellena a mano"
+    },
+    "records": {
+      "title": "Genealogia",
+      "link": "Registros",
+      "back": "Volver",
+      "empty": "No hay registros todavia.",
+      "date": "Fecha"
+    },
+    "lookupColumns": {
+      "barcode": "Codigo de barras",
+      "default_code": "Referencia",
+      "code": "Codigo",
+      "name": "Numero de serie"
+    }
+  },
+  "masterData": {
+    "title": "Datos maestros",
+    "subtitle": "Informacion en vivo desde Odoo. Manufactoo no guarda copia: cada vez que abres esta pantalla se consulta a Odoo directamente.",
+    "tabs": {
+      "products": "Productos",
+      "boms": "Listas de materiales",
+      "manufacturingOrders": "Ordenes de fabricacion",
+      "operators": "Operarios",
+      "serials": "Series"
+    },
+    "columns": {
+      "display_name": "Nombre",
+      "name": "Nombre",
+      "default_code": "Referencia",
+      "barcode": "Codigo de barras",
+      "qty_available": "Cantidad disponible",
+      "uom_id": "Unidad de medida",
+      "product_tmpl_id": "Producto",
+      "product_id": "Producto",
+      "product_qty": "Cantidad",
+      "type": "Tipo",
+      "code": "Codigo",
+      "state": "Estado",
+      "date_start": "Inicio",
+      "date_finished": "Fin",
+      "job_title": "Puesto",
+      "department_id": "Departamento",
+      "work_email": "Email",
+      "ref": "Referencia interna"
+    },
+    "loading": "Cargando datos de Odoo...",
+    "empty": "No hay datos para mostrar.",
+    "error": "No se pudieron cargar los datos de Odoo.",
+    "previous": "Anterior",
+    "next": "Siguiente"
+  },
+  "settings": {
+    "title": "Configuracion",
+    "general": {
+      "title": "General",
+      "companyName": "Nombre de la empresa",
+      "sector": "Sector",
+      "saved": "Cambios guardados",
+      "logo": {
+        "title": "Logo de la empresa",
+        "none": "Sin logo",
+        "hint": "PNG, JPEG, WEBP o SVG. Maximo 2 MB. Se muestra en la barra lateral.",
+        "upload": "Subir logo",
+        "uploading": "Subiendo...",
+        "remove": "Eliminar logo",
+        "removing": "Eliminando...",
+        "errorType": "Formato no soportado. Usa PNG, JPEG, WEBP o SVG.",
+        "errorSize": "La imagen no puede superar 2 MB."
+      }
+    },
+    "odoo": {
+      "title": "Conexion Odoo",
+      "hostHint": "Si Odoo esta instalado en tu propio equipo (no en un contenedor Docker), usa 'host.docker.internal' en vez de 'localhost'.",
+      "version": "Version detectada",
+      "lastTest": "Ultima comprobacion",
+      "editCredentials": "Editar credenciales",
+      "testButton": "Probar conexion",
+      "saved": "Conexion actualizada"
+    },
+    "appearance": {
+      "title": "Idioma y apariencia"
+    },
+    "updateCheck": {
+      "title": "Actualizaciones",
+      "description": "Comprueba si hay una version mas reciente de Manufactoo disponible en GitHub. Desactivado por defecto: nunca se envia informacion sin tu permiso.",
+      "enable": "Activar comprobacion de actualizaciones",
+      "checkNow": "Comprobar ahora",
+      "upToDate": "Tienes la ultima version ({{version}})",
+      "updateAvailable": "Hay una nueva version disponible: {{version}}"
+    }
+  },
+  "profile": {
+    "title": "Mi perfil",
+    "name": "Nombre",
+    "email": "Email",
+    "currentPassword": "Contrasena actual",
+    "newPassword": "Nueva contrasena (opcional)",
+    "saved": "Perfil actualizado",
+    "photo": {
+      "title": "Foto de perfil",
+      "hint": "PNG, JPEG o WEBP. Maximo 2 MB.",
+      "upload": "Subir foto",
+      "uploading": "Subiendo...",
+      "remove": "Eliminar foto",
+      "removing": "Eliminando...",
+      "errorType": "Formato no soportado. Usa PNG, JPEG o WEBP.",
+      "errorSize": "La imagen no puede superar 2 MB."
+    }
+  }
+}

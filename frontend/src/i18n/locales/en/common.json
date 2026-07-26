@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "Manufactoo"
+  },
+  "actions": {
+    "continue": "Continue",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "test": "Test connection",
+    "testing": "Testing...",
+    "finish": "Finish installation",
+    "edit": "Edit",
+    "logout": "Log out",
+    "retry": "Retry",
+    "confirm": "Confirm"
+  },
+  "nav": {
+    "groupGeneral": "General",
+    "groupTraceability": "Traceability & genealogy",
+    "dashboard": "Dashboard",
+    "masterData": "Master data",
+    "apps": "Apps",
+    "devices": "Devices & Events",
+    "stations": "Stations",
+    "settings": "Settings",
+    "profile": "My profile"
+  },
+  "settings": {
+    "tabs": {
+      "general": "General",
+      "odoo": "Odoo connection",
+      "appearance": "Language and appearance"
+    }
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "accentColor": "Accent color"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "status": {
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "neverTested": "Never tested",
+    "success": "Success",
+    "failure": "Failed"
+  },
+  "sectors": {
+    "METAL": "Metal",
+    "AUTOMOTIVE": "Automotive",
+    "FOOD_BEVERAGE": "Food & beverage",
+    "PLASTICS": "Plastics",
+    "PHARMACEUTICAL": "Pharmaceutical",
+    "MEDICAL": "Medical",
+    "AEROSPACE_DEFENSE": "Aerospace & defence",
+    "INDUSTRIAL": "Industrial",
+    "ELECTRONICS": "Electronics",
+    "CHEMICAL": "Chemical",
+    "TEXTILE": "Textile",
+    "OTHER": "Other"
+  }
+}

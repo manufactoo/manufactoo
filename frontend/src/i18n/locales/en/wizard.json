@@ -1,0 +1,52 @@
+{
+  "progress": {
+    "step": "Step {{current}} of {{total}}"
+  },
+  "step1": {
+    "title": "Choose your language",
+    "subtitle": "This language will be used throughout the wizard and the dashboard."
+  },
+  "step2": {
+    "title": "Odoo connection",
+    "subtitle": "Manufactoo needs to connect to your existing Odoo instance as its master data source (products, bills of materials, manufacturing orders). Select your installed Odoo version, enter the connection details and run the test to continue.",
+    "versionQuestion": "Which Odoo version do you have installed?",
+    "version18": "Odoo 18",
+    "version19": "Odoo 19",
+    "externalHost": "URL or host",
+    "hostHint": "If Odoo is installed on your own machine (not in a Docker container), use 'host.docker.internal' instead of 'localhost'.",
+    "externalPort": "Port",
+    "externalDatabase": "Database",
+    "externalUsername": "Username",
+    "externalApiKey": "API key or password",
+    "testSuccess": "Connection successful. Detected Odoo version: {{version}}",
+    "testFailure": "Could not connect: {{error}}",
+    "versionMismatch": "Detected version ({{detected}}) does not match the selected one ({{expected}}). Check your Odoo installation."
+  },
+  "step3": {
+    "title": "Company details",
+    "subtitle": "This information will be used to set up your installation.",
+    "name": "Company name",
+    "sector": "Sector"
+  },
+  "step4": {
+    "title": "Administrator user",
+    "subtitle": "This will be the user you sign in to Manufactoo with.",
+    "fullName": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 8 characters"
+  },
+  "step5": {
+    "title": "Summary",
+    "subtitle": "Review the details before finishing the installation.",
+    "language": "Language",
+    "odooStatus": "Odoo connection",
+    "odooConnected": "Connected (version {{version}})",
+    "company": "Company",
+    "adminUser": "Administrator user",
+    "finishing": "Finishing installation...",
+    "errorGeneric": "Could not finish the installation: {{error}}"
+  }
+}

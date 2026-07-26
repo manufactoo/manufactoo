@@ -1,0 +1,41 @@
+# Java / Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+
+# Electron Player
+electron-player/node_modules/
+electron-player/dist/
+electron-player/out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+secrets/
+!secrets/.gitkeep
+*.pem
+*.key
+manufactoo_master_key*
+
+# Backups
+backups/
+*.dump
+
+# Docker
+docker-compose.override.yml

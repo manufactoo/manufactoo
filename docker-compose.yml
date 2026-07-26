@@ -1,0 +1,77 @@
+name: manufactoo
+
+# Despliegue de produccion. Requiere:
+#   - .env con DB_PASSWORD, MANUFACTOO_PUBLIC_ORIGIN, MANUFACTOO_VERSION, CLOUDFLARE_TUNNEL_TOKEN
+#   - secrets/manufactoo_master_key generado con scripts/generate-master-key.sh
+#     ANTES del primer arranque (ver README para el porque: Docker secrets son
+#     montados de solo lectura, no se pueden generar desde dentro del contenedor).
+#
+# Imagenes con tags inmutables (nunca "latest" en produccion): ver .env MANUFACTOO_VERSION.
+
+secrets:
+  manufactoo_master_key:
+    file: ./secrets/manufactoo_master_key
+
+services:
+  postgres:
+    image: postgres:18.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-manufactoo}
+      POSTGRES_USER: ${DB_USER:-manufactoo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # postgres 18+ espera el volumen en /var/lib/postgresql (sin /data): gestiona
+      # internamente el subdirectorio versionado (ver docker-library/postgres#1259).
+      - manufactoo_pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-manufactoo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: manufactoo-backend:${MANUFACTOO_VERSION:?debes fijar MANUFACTOO_VERSION, ej. 0.1.0}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-manufactoo}
+      DB_USER: ${DB_USER:-manufactoo}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?debes fijar JWT_SECRET}
+      MANUFACTOO_PUBLIC_ORIGIN: ${MANUFACTOO_PUBLIC_ORIGIN:?debes fijar el dominio publico}
+      MANUFACTOO_MASTER_KEY_PATH: /run/secrets/manufactoo_master_key
+    secrets:
+      - manufactoo_master_key
+    volumes:
+      - manufactoo_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    image: manufactoo-frontend:${MANUFACTOO_VERSION:?debes fijar MANUFACTOO_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?debes fijar CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  manufactoo_pg_data:
+  manufactoo_backups:

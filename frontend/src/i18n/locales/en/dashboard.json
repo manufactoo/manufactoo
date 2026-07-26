@@ -1,0 +1,389 @@
+{
+  "welcome": "Welcome to Manufactoo",
+  "apps": {
+    "title": "Apps",
+    "subtitle": "Install additional Manufactoo functionality. Some apps depend on others.",
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "installed": "Installed",
+    "notInstalled": "Not installed",
+    "version": "Version",
+    "missingDependencies": "Requires installing first: {{apps}}",
+    "error": "Could not complete the operation.",
+    "traceabilityGenealogy": {
+      "name": "Traceability & genealogy",
+      "description": "Track every unit's path through the shop floor: devices, stations and manufacturing routes."
+    }
+  },
+  "devices": {
+    "pageTitle": "Devices & events",
+    "title": "Devices",
+    "subtitle": "Physical shop-floor devices: readers, printers, machines...",
+    "add": "Add device",
+    "edit": "Edit device",
+    "name": "Name",
+    "direction": "Direction",
+    "category": "Category",
+    "transport": "Connection",
+    "enabled": "Enabled",
+    "save": "Save",
+    "delete": "Delete",
+    "confirmDelete": "Delete this device?",
+    "empty": "No devices yet.",
+    "notInstalled": "Install the Traceability & genealogy app to manage devices.",
+    "chooseDirection": "Choose input or output",
+    "chooseCategory": "Choose the device type",
+    "chooseTransport": "Choose how it connects",
+    "connectionSection": "Connection details",
+    "settingsSection": "Specific settings",
+    "directions": {
+      "INPUT": "Input",
+      "OUTPUT": "Output",
+      "BIDIRECTIONAL": "Bidirectional"
+    },
+    "categories": {
+      "BARCODE_SCANNER": "Barcode scanner",
+      "RS232": "Generic RS232 input",
+      "PRINTER": "Printer"
+    },
+    "transports": {
+      "SERIAL": "Serial port",
+      "USB_HID": "USB (keyboard emulation)",
+      "IPP_CUPS": "Network printing (IPP/CUPS)",
+      "ZPL_RAW": "Raw ZPL",
+      "ESC_POS": "Raw ESC/POS"
+    },
+    "fields": {
+      "port": "Port (e.g. COM3)",
+      "tcpPort": "Port",
+      "baudRate": "Baud rate",
+      "dataBits": "Data bits",
+      "stopBits": "Stop bits",
+      "parity": "Parity",
+      "flowControl": "Flow control",
+      "lineEnding": "Line ending",
+      "encoding": "Encoding",
+      "timeoutMs": "Timeout (ms)",
+      "host": "Host / IP",
+      "vendorId": "Vendor ID",
+      "productId": "Product ID",
+      "queue": "Print queue"
+    },
+    "fieldOptions": {
+      "parity": {
+        "NONE": "None",
+        "EVEN": "Even",
+        "ODD": "Odd",
+        "MARK": "Mark",
+        "SPACE": "Space"
+      },
+      "flowControl": {
+        "NONE": "None",
+        "RTS_CTS": "RTS/CTS (hardware)",
+        "XON_XOFF": "XON/XOFF (software)"
+      },
+      "lineEnding": {
+        "NONE": "None",
+        "CR": "CR",
+        "LF": "LF",
+        "CRLF": "CRLF"
+      },
+      "encoding": {
+        "UTF8": "UTF-8",
+        "ASCII": "ASCII",
+        "LATIN1": "Latin-1"
+      }
+    }
+  },
+  "events": {
+    "title": "Events",
+    "subtitle": "Topics on Manufactoo's embedded MQTT broker. An event is not a physical device: it's a topic Manufactoo listens on or publishes to.",
+    "add": "Add event",
+    "edit": "Edit event",
+    "name": "Name",
+    "topic": "Topic",
+    "direction": "Direction",
+    "empty": "No events yet.",
+    "confirmDelete": "Delete this event?",
+    "directions": {
+      "SUBSCRIBE": "Listen (subscribe)",
+      "PUBLISH": "Publish"
+    },
+    "directionHints": {
+      "SUBSCRIBE": "Manufactoo listens for what the shop floor publishes on this topic.",
+      "PUBLISH": "Manufactoo publishes data or commands on this topic for the shop floor to receive."
+    }
+  },
+  "stations": {
+    "pageTitle": "Stations",
+    "subtitle": "Physical shop-floor workstations. Design each station's layout with no code; the operator uses it day-to-day and generates traceability data.",
+    "add": "Create station",
+    "edit": "Edit station",
+    "name": "Name",
+    "description": "Description",
+    "enabled": "Enabled",
+    "empty": "No stations yet.",
+    "confirmDelete": "Delete this station?",
+    "notInstalled": "Install the Traceability & genealogy app to manage stations.",
+    "openBuilder": "Design layout",
+    "openRuntime": "Open (operator)",
+    "save": "Save",
+    "delete": "Delete",
+    "widgetCount": "{{count}} widgets",
+    "tabs": {
+      "stations": "Stations",
+      "routes": "Routes",
+      "players": "Players"
+    },
+    "routes": {
+      "subtitle": "The sequence of stations a unit of a product must go through. Prevents skipping a step: each station checks that the unit already passed through the previous one.",
+      "empty": "No routes yet.",
+      "add": "Create route",
+      "addTitle": "Create route",
+      "editTitle": "Edit route",
+      "name": "Name",
+      "product": "Product",
+      "anyProduct": "Any product",
+      "identifierKey": "Identifier key",
+      "identifierKeyHint": "The data key that identifies the unit at each station in the route (e.g. \"serial\", \"order\"). Every station in the route must capture a value under this same key.",
+      "steps": "Steps (station sequence)",
+      "addStep": "Add step",
+      "stepLabel": "Step label",
+      "noSteps": "Add at least one station.",
+      "needAtLeastOneStep": "The route needs at least one step.",
+      "saveError": "Could not save the route.",
+      "confirmDelete": "Delete this route?"
+    },
+    "players": {
+      "subtitle": "Physical workstations (shop-floor PCs) running the Manufactoo Player. Pair them with a station so they can reach local devices (serial port, MQTT, printers).",
+      "empty": "No Player has connected yet. Install it on a shop-floor PC: it will show a pairing code here.",
+      "name": "Name",
+      "station": "Station",
+      "status": "Status",
+      "version": "Version",
+      "lastSeen": "Last seen",
+      "noStation": "No station assigned",
+      "pendingCode": "Pending pairing:",
+      "paired": "Paired",
+      "expired": "Code expired",
+      "assign": "Assign",
+      "unpair": "Unpair",
+      "assignTitle": "Assign Player to a station",
+      "confirmUnpair": "Unpair this Player? It will need to be paired again from scratch."
+    },
+    "builder": {
+      "title": "Station designer",
+      "palette": "Widgets",
+      "paletteHint": "Drag a widget onto the layout, or click to add it at the end.",
+      "canvas": "Layout",
+      "properties": "Properties",
+      "noSelection": "Select a widget to edit its properties.",
+      "emptyCanvas": "Add widgets from the left panel to start designing.",
+      "back": "Back",
+      "save": "Save layout",
+      "saved": "Layout saved",
+      "error": "Could not save the layout.",
+      "screenTitle": "Screen title",
+      "preview": "Operator preview",
+      "screenN": "Screen {{n}}",
+      "addScreen": "Add screen"
+    },
+    "widget": {
+      "label": "Label",
+      "bindingKey": "Data key",
+      "bindingKeyHint": "Name under which the value is stored in traceability (e.g. order, operator).",
+      "required": "Required",
+      "image": "Image",
+      "source": "Input source",
+      "sourceKind": {
+        "NONE": "Manual",
+        "DEVICE": "Device",
+        "EVENT": "Event (MQTT)"
+      },
+      "chooseDevice": "Choose the device",
+      "chooseEvent": "Choose the event",
+      "sourceDeviceHint": "Data from this device (e.g. a scanner) will fill this field.",
+      "sourceEventHint": "The station waits for this topic and its value fills the field.",
+      "lookupColumn": "Match column",
+      "chooseLookupColumn": "Choose the column",
+      "lookupColumnHint": "The scanned code (e.g. a badge barcode) is looked up in this column; the matched record is saved and its name is shown.",
+      "dataSource": "Data source",
+      "chooseDataSource": "Choose the source",
+      "staticOptions": "Options (one per line: value|label)",
+      "position": "Position and size",
+      "x": "Column (X)",
+      "y": "Row (Y)",
+      "w": "Width",
+      "h": "Height",
+      "delete": "Delete widget"
+    },
+    "types": {
+      "DROPDOWN": "Dropdown",
+      "TEXT_INPUT": "Text",
+      "NUMBER_INPUT": "Number",
+      "LABEL": "Text label",
+      "IMAGE": "Image",
+      "TABLE": "Table",
+      "BUTTON": "Button"
+    },
+    "dataSources": {
+      "STATIC_LIST": "Static list",
+      "ODOO_PRODUCTS": "Products (Odoo)",
+      "ODOO_MANUFACTURING_ORDERS": "Manufacturing orders (Odoo)",
+      "ODOO_OPERATORS": "Operators (Odoo)",
+      "ODOO_BOMS": "Bills of materials (Odoo)",
+      "ODOO_SERIALS": "Serials/lots (Odoo)"
+    },
+    "fields": {
+      "placeholder": "Placeholder",
+      "min": "Minimum",
+      "max": "Maximum",
+      "text": "Text",
+      "fit": "Image fit",
+      "maxRows": "Max rows",
+      "action": "Action",
+      "targetScreen": "Target screen (#)",
+      "selectionMode": "Selection",
+      "valueColumn": "Stored value column"
+    },
+    "fieldOptions": {
+      "fit": {
+        "CONTAIN": "Contain",
+        "COVER": "Cover"
+      },
+      "action": {
+        "NEXT": "Next screen",
+        "PREV": "Previous screen",
+        "GOTO": "Go to screen...",
+        "SUBMIT": "Finish and record"
+      },
+      "selectionMode": {
+        "NONE": "Display only",
+        "SINGLE": "Single select",
+        "MULTI": "Multi select"
+      }
+    },
+    "runtime": {
+      "submit": "Finish and record",
+      "submitted": "Record saved",
+      "submitError": "Could not save the record.",
+      "loadOptionsError": "Could not load data from Odoo.",
+      "selectPlaceholder": "Select...",
+      "back": "Back",
+      "prev": "Back",
+      "next": "Next",
+      "emptyScreen": "This screen has no widgets yet.",
+      "scanPlaceholder": "Scan or paste the code and press Enter",
+      "scanNotFound": "No record found with code \"{{code}}\".",
+      "viaPlayer": "Connected via Player",
+      "browserOnly": "Browser only: fill in by hand"
+    },
+    "records": {
+      "title": "Genealogy",
+      "link": "Records",
+      "back": "Back",
+      "empty": "No records yet.",
+      "date": "Date"
+    },
+    "lookupColumns": {
+      "barcode": "Barcode",
+      "default_code": "Reference",
+      "code": "Code",
+      "name": "Serial number"
+    }
+  },
+  "masterData": {
+    "title": "Master data",
+    "subtitle": "Live information from Odoo. Manufactoo keeps no copy: every time you open this screen it queries Odoo directly.",
+    "tabs": {
+      "products": "Products",
+      "boms": "Bills of materials",
+      "manufacturingOrders": "Manufacturing orders",
+      "operators": "Operators",
+      "serials": "Serials"
+    },
+    "columns": {
+      "display_name": "Name",
+      "name": "Name",
+      "default_code": "Reference",
+      "barcode": "Barcode",
+      "qty_available": "Quantity on hand",
+      "uom_id": "Unit of measure",
+      "product_tmpl_id": "Product",
+      "product_id": "Product",
+      "product_qty": "Quantity",
+      "type": "Type",
+      "code": "Code",
+      "state": "Status",
+      "date_start": "Start",
+      "date_finished": "Finish",
+      "job_title": "Job title",
+      "department_id": "Department",
+      "work_email": "Email",
+      "ref": "Internal reference"
+    },
+    "loading": "Loading data from Odoo...",
+    "empty": "Nothing to show.",
+    "error": "Could not load data from Odoo.",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": {
+      "title": "General",
+      "companyName": "Company name",
+      "sector": "Sector",
+      "saved": "Changes saved",
+      "logo": {
+        "title": "Company logo",
+        "none": "No logo",
+        "hint": "PNG, JPEG, WEBP or SVG. Max 2 MB. Shown in the sidebar.",
+        "upload": "Upload logo",
+        "uploading": "Uploading...",
+        "remove": "Remove logo",
+        "removing": "Removing...",
+        "errorType": "Unsupported format. Use PNG, JPEG, WEBP or SVG.",
+        "errorSize": "The image can't be larger than 2 MB."
+      }
+    },
+    "odoo": {
+      "title": "Odoo connection",
+      "hostHint": "If Odoo is installed on your own machine (not in a Docker container), use 'host.docker.internal' instead of 'localhost'.",
+      "version": "Detected version",
+      "lastTest": "Last check",
+      "editCredentials": "Edit credentials",
+      "testButton": "Test connection",
+      "saved": "Connection updated"
+    },
+    "appearance": {
+      "title": "Language and appearance"
+    },
+    "updateCheck": {
+      "title": "Updates",
+      "description": "Check whether a newer version of Manufactoo is available on GitHub. Disabled by default: nothing is ever sent without your consent.",
+      "enable": "Enable update checking",
+      "checkNow": "Check now",
+      "upToDate": "You're on the latest version ({{version}})",
+      "updateAvailable": "A new version is available: {{version}}"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "name": "Name",
+    "email": "Email",
+    "currentPassword": "Current password",
+    "newPassword": "New password (optional)",
+    "saved": "Profile updated",
+    "photo": {
+      "title": "Profile photo",
+      "hint": "PNG, JPEG or WEBP. Max 2 MB.",
+      "upload": "Upload photo",
+      "uploading": "Uploading...",
+      "remove": "Remove photo",
+      "removing": "Removing...",
+      "errorType": "Unsupported format. Use PNG, JPEG or WEBP.",
+      "errorSize": "The image can't be larger than 2 MB."
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "progress": {
+    "step": "Paso {{current}} de {{total}}"
+  },
+  "step1": {
+    "title": "Elige tu idioma",
+    "subtitle": "Este idioma se usara en todo el asistente y en el panel de control."
+  },
+  "step2": {
+    "title": "Conexion con Odoo",
+    "subtitle": "Manufactoo necesita conectarse a tu instancia Odoo como fuente de datos maestros (productos, listas de materiales, ordenes de fabricacion). Elige la version de Odoo que tienes instalada, introduce los datos de conexion y haz el test para continuar.",
+    "versionQuestion": "¿Que version de Odoo tienes instalada?",
+    "version18": "Odoo 18",
+    "version19": "Odoo 19",
+    "externalHost": "URL o host",
+    "hostHint": "Si Odoo esta instalado en tu propio equipo (no en un contenedor Docker), usa 'host.docker.internal' en vez de 'localhost'.",
+    "externalPort": "Puerto",
+    "externalDatabase": "Base de datos",
+    "externalUsername": "Usuario",
+    "externalApiKey": "API key o contrasena",
+    "testSuccess": "Conexion correcta. Version de Odoo detectada: {{version}}",
+    "testFailure": "No se pudo conectar: {{error}}",
+    "versionMismatch": "Version detectada ({{detected}}) no coincide con la seleccionada ({{expected}}). Verifica tu instalacion de Odoo."
+  },
+  "step3": {
+    "title": "Datos de la empresa",
+    "subtitle": "Esta informacion se usara para configurar tu instalacion.",
+    "name": "Nombre de la empresa",
+    "sector": "Sector"
+  },
+  "step4": {
+    "title": "Usuario administrador",
+    "subtitle": "Sera el usuario con el que accedas a Manufactoo.",
+    "fullName": "Nombre completo",
+    "email": "Email",
+    "password": "Contrasena",
+    "passwordConfirm": "Confirmar contrasena",
+    "passwordMismatch": "Las contrasenas no coinciden",
+    "passwordTooShort": "La contrasena debe tener al menos 8 caracteres"
+  },
+  "step5": {
+    "title": "Resumen",
+    "subtitle": "Revisa los datos antes de finalizar la instalacion.",
+    "language": "Idioma",
+    "odooStatus": "Conexion con Odoo",
+    "odooConnected": "Conectado (version {{version}})",
+    "company": "Empresa",
+    "adminUser": "Usuario administrador",
+    "finishing": "Finalizando instalacion...",
+    "errorGeneric": "No se pudo completar la instalacion: {{error}}"
+  }
+}
