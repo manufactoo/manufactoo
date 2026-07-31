@@ -34,11 +34,16 @@ public final class WidgetCatalog {
                     WidgetType.DROPDOWN.name(), WidgetCategory.DATA, true, true,
                     List.of(
                             WidgetFieldDef.text("placeholder", false, ""),
-                            // Igual que en BUTTON: si no es NONE, confirmar este campo
-                            // (seleccionar una opcion, a mano o por escaneo/Player)
-                            // finaliza y registra la unidad con ese resultado -- no hace
+                            // Si esta marcado, confirmar este campo (seleccionar una
+                            // opcion, a mano o por escaneo/Player) finaliza el flujo
+                            // de la estacion y registra la unidad como OK -- no hace
                             // falta un BUTTON aparte (ver conversacion 2026-07-31).
-                            WidgetFieldDef.select("result", false, List.of("NONE", "OK", "NG")))),
+                            WidgetFieldDef.checkbox("finalizesFlow"),
+                            // Si esta marcado, el valor de este campo NO se limpia tras
+                            // enviar el registro -- se mantiene para la siguiente unidad
+                            // (p. ej. el operario de turno: se elige una vez, no en cada
+                            // unidad). Puramente de runtime, no afecta a la validacion.
+                            WidgetFieldDef.checkbox("sticky"))),
             new WidgetDescriptor(
                     // supportsDataSource=true pero OPCIONAL para este tipo (ver
                     // StationService.validate): a diferencia de DROPDOWN/TABLE, un
@@ -49,16 +54,19 @@ public final class WidgetCatalog {
                     WidgetType.TEXT_INPUT.name(), WidgetCategory.DATA, true, true,
                     List.of(
                             WidgetFieldDef.text("placeholder", false, ""),
-                            // Pulsar Enter en este campo (p. ej. tras escanear un numero
-                            // de serie) finaliza y registra la unidad con este resultado,
-                            // sin necesitar un BUTTON aparte.
-                            WidgetFieldDef.select("result", false, List.of("NONE", "OK", "NG")))),
+                            // Si esta marcado, pulsar Enter en este campo (p. ej. tras
+                            // escanear un numero de serie) finaliza el flujo de la
+                            // estacion y registra la unidad como OK, sin necesitar un
+                            // BUTTON aparte.
+                            WidgetFieldDef.checkbox("finalizesFlow"),
+                            WidgetFieldDef.checkbox("sticky"))),
             new WidgetDescriptor(
                     WidgetType.NUMBER_INPUT.name(), WidgetCategory.DATA, true, false,
                     List.of(
                             WidgetFieldDef.text("placeholder", false, ""),
                             WidgetFieldDef.number("min", false, ""),
-                            WidgetFieldDef.number("max", false, ""))),
+                            WidgetFieldDef.number("max", false, ""),
+                            WidgetFieldDef.checkbox("sticky"))),
             new WidgetDescriptor(
                     // "text" ya no es obligatorio aqui: una Etiqueta puede llevar texto
                     // fijo (el caso de siempre) O estar vinculada a otro widget de la
@@ -68,7 +76,10 @@ public final class WidgetCatalog {
                     // eso se comprueba en StationService, no aqui (el catalogo no sabe de
                     // otros widgets de la misma estacion).
                     WidgetType.LABEL.name(), WidgetCategory.DISPLAY, false, false,
-                    List.of(WidgetFieldDef.text("text", false, ""))),
+                    List.of(
+                            WidgetFieldDef.text("text", false, ""),
+                            WidgetFieldDef.checkbox("showDateTime"),
+                            WidgetFieldDef.text("dateTimeFormat", false, "dd/MM/yyyy HH:mm:ss"))),
             new WidgetDescriptor(
                     WidgetType.IMAGE.name(), WidgetCategory.DISPLAY, false, false,
                     List.of(WidgetFieldDef.select("fit", false, List.of("CONTAIN", "COVER")))),
@@ -101,6 +112,12 @@ public final class WidgetCatalog {
                     // series/lotes de Odoo, ver MaterialLoadService). No se rellena por
                     // envio -- cada unidad hereda los lotes activos automaticamente.
                     WidgetType.STATION_MATERIALS.name(), WidgetCategory.DISPLAY, false, false,
+                    List.of()),
+            new WidgetDescriptor(
+                    // Sin config propia: el borde es fijo, el relleno (si se quiere)
+                    // usa el mismo config.styles.panel.backgroundColor que cualquier
+                    // otro widget -- ver WIDGET_STYLE_PARTS en WidgetView.tsx.
+                    WidgetType.PANEL.name(), WidgetCategory.DISPLAY, false, false,
                     List.of())
     );
 

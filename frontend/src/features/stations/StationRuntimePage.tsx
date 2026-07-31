@@ -263,8 +263,22 @@ export function StationRuntimePage() {
     setSubmitting(true);
     setError(null);
     try {
-      await apiClient.post(`/api/stations/${id}/records`, { values: overrideValues ?? values, result: result ?? null });
-      setValues({});
+      const payload = overrideValues ?? values;
+      await apiClient.post(`/api/stations/${id}/records`, { values: payload, result: result ?? null });
+      // Los widgets con config.sticky mantienen su valor para la siguiente
+      // unidad (p. ej. el operario de turno: se elige una vez, no en cada
+      // unidad) -- el resto se limpia como siempre. Se parte de `payload`
+      // (lo que de verdad se acaba de enviar), no del estado `values`
+      // (podria diferir si vino de handleConfirm con overrideValues).
+      const stickyKeys = screens
+        .flatMap((s) => s.widgets)
+        .filter((w) => w.config.sticky === true && w.bindingKey)
+        .map((w) => w.bindingKey as string);
+      setValues(
+        stickyKeys.length === 0
+          ? {}
+          : Object.fromEntries(stickyKeys.filter((k) => payload[k] !== undefined).map((k) => [k, payload[k]])),
+      );
       setCurrent(0);
       setFlash(t("stations.runtime.submitted"));
       window.setTimeout(() => setFlash(null), 3000);
@@ -287,13 +301,12 @@ export function StationRuntimePage() {
     } else if (action === "MATERIALS") setMaterialsDialogOpen(true);
   }
 
-  /** TEXT_INPUT/DROPDOWN con config.result != NONE: confirmar su valor (Enter, seleccion, escaneo) finaliza y registra directamente, sin BUTTON. */
+  /** TEXT_INPUT/DROPDOWN con config.finalizesFlow: confirmar su valor (Enter, seleccion, escaneo) finaliza el flujo y registra directamente como OK, sin necesitar un BUTTON aparte. */
   function handleConfirm(widget: Widget, value: unknown) {
-    const result = widget.config.result as string | undefined;
-    if (!result || result === "NONE" || !widget.bindingKey) return;
+    if (widget.config.finalizesFlow !== true || !widget.bindingKey) return;
     const merged = { ...values, [widget.bindingKey]: value };
     setValues(merged);
-    void submit(result, merged);
+    void submit("OK", merged);
   }
 
   if (!station) {
@@ -303,7 +316,7 @@ export function StationRuntimePage() {
   const isLast = current >= screens.length - 1;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* En modo kiosko (dentro del Player) no hay a donde "volver": el
@@ -342,9 +355,17 @@ export function StationRuntimePage() {
                   style={{
                     gridColumn: `${widget.layout.x + 1} / span ${widget.layout.w}`,
                     gridRow: `${toFineRows(widget.layout.y) + 1} / span ${toFineRows(widget.layout.h)}`,
+                    // PANEL es puramente decorativo: se queda siempre detras
+                    // del resto para no tapar ni robar el clic a los widgets
+                    // colocados encima (ver conversacion 2026-08-01).
+                    zIndex: widget.widgetType === "PANEL" ? 0 : 1,
                     height: "100%",
-                    paddingLeft: 1,
-                    paddingRight: 1,
+                    // PANEL sin relleno horizontal para que su borde llegue
+                    // justo al limite de su celda. Los demas widgets llevan 4px
+                    // de aire a cada lado, asi que no tocan el borde de un
+                    // PANEL colocado detras.
+                    paddingLeft: widget.widgetType === "PANEL" ? 0 : 4,
+                    paddingRight: widget.widgetType === "PANEL" ? 0 : 4,
                     paddingTop: PART_GAP,
                     paddingBottom: PART_GAP,
                     overflowX: "visible",
@@ -427,9 +448,9 @@ export function StationRuntimePage() {
       {/* Navegacion de la secuencia: Atras/Siguiente siguen siendo por
           defecto, pero Finalizar ya no lo es -- lo decide el diseñador
           colocando su propio widget finalizador (BUTTON action=SUBMIT, o un
-          TEXT_INPUT/DROPDOWN con resultado != NONE), validado al guardar la
-          estacion (ver StationService.validate). Sin fallback aqui: si no
-          hay ninguno, la estacion no se puede ni guardar. */}
+          TEXT_INPUT/DROPDOWN con "finaliza el flujo" marcado), validado al
+          guardar la estacion (ver StationService.validate). Sin fallback
+          aqui: si no hay ninguno, la estacion no se puede ni guardar. */}
       <div className="flex items-center justify-between">
         <Button variant="outline" onClick={() => goTo(current - 1)} disabled={current === 0}>
           <IconChevronLeft className="mr-1 size-4" />

@@ -1,4 +1,4 @@
-export type WidgetFieldType = "TEXT" | "NUMBER" | "SELECT";
+export type WidgetFieldType = "TEXT" | "NUMBER" | "SELECT" | "CHECKBOX";
 
 export interface WidgetFieldDef {
   key: string;

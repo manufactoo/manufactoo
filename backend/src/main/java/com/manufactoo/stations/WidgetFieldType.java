@@ -4,5 +4,6 @@ package com.manufactoo.stations;
 public enum WidgetFieldType {
     TEXT,
     NUMBER,
-    SELECT
+    SELECT,
+    CHECKBOX
 }

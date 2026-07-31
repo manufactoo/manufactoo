@@ -27,4 +27,8 @@ public record WidgetFieldDef(
     public static WidgetFieldDef select(String key, boolean required, List<String> options) {
         return new WidgetFieldDef(key, "stations.fields." + key, WidgetFieldType.SELECT, required, options, null);
     }
+
+    public static WidgetFieldDef checkbox(String key) {
+        return new WidgetFieldDef(key, "stations.fields." + key, WidgetFieldType.CHECKBOX, false, List.of(), null);
+    }
 }

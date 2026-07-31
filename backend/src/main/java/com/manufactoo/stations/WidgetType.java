@@ -31,5 +31,13 @@ public enum WidgetType {
      * estar activos a la vez). Cada unidad que pasa mientras tanto los
      * hereda automaticamente (ver StationService.mergeActiveMaterialLoads).
      */
-    STATION_MATERIALS
+    STATION_MATERIALS,
+    /**
+     * Puramente decorativo: un rectangulo con borde (y fondo opcional) para
+     * agrupar visualmente otros widgets colocados encima -- sin relacion real
+     * de contenido/anidamiento en los datos, cada widget sigue siendo
+     * independiente en la misma rejilla plana de la pantalla (ver
+     * conversacion 2026-08-01). Se renderiza siempre detras del resto.
+     */
+    PANEL
 }

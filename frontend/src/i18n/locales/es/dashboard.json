@@ -145,7 +145,7 @@
       "product": "Producto",
       "anyProduct": "Cualquier producto",
       "identifierKey": "Clave identificadora",
-      "identifierKeyHint": "La clave de datos que identifica la unidad en cada estacion de la ruta (p. ej. \"serial\", \"orden\"). Cada estacion de la ruta debe capturar un dato con esta misma clave.",
+      "identifierKeyHint": "La clave de datos que identifica la unidad en cada estacion de la ruta (p. ej. \"serial\", \"orden\"). Cada estacion de la ruta debe capturar un dato con esta misma clave, y la genealogia la usa para agrupar el recorrido de la unidad fabricada.",
       "steps": "Pasos (secuencia de estaciones)",
       "addStep": "Anadir paso",
       "stepLabel": "Etiqueta del paso",
@@ -228,6 +228,9 @@
       "boundField": "Mostrar",
       "boundFieldHint": "Que dato del widget vinculado se enseña: el valor tal cual, o (si viene de un dato maestro de Odoo) una de sus columnas.",
       "boundFieldValue": "El valor introducido/seleccionado",
+      "showDateTime": "Mostrar fecha y hora actual",
+      "dateTimeFormat": "Formato de fecha y hora",
+      "dateTimeFormatHint": "Formato de date-fns, p. ej. dd/MM/yyyy HH:mm:ss. Se actualiza cada segundo en el runtime.",
       "detailPreviewValue": "Ejemplo",
       "stationMaterialsPreview": "Solo informativo: lista de lotes/series activos en la estacion. Se cargan desde el boton Materiales.",
       "staticOptions": "Opciones (una por linea: valor|etiqueta)",
@@ -246,7 +249,8 @@
       "IMAGE": "Imagen",
       "TABLE": "Tabla",
       "BUTTON": "Boton",
-      "STATION_MATERIALS": "Materiales de la estacion"
+      "STATION_MATERIALS": "Materiales de la estacion",
+      "PANEL": "Panel"
     },
     "dataSources": {
       "STATIC_LIST": "Lista estatica",
@@ -267,7 +271,11 @@
       "targetScreen": "Pantalla destino (nº)",
       "selectionMode": "Seleccion",
       "valueColumn": "Columna de valor guardado",
-      "result": "Resultado"
+      "result": "Resultado",
+      "finalizesFlow": "Finaliza flujo",
+      "finalizesFlowHint": "Al confirmar el valor de este campo (Enter, seleccion, escaneo), se registra la unidad con resultado OK.",
+      "sticky": "Mantener tras enviar",
+      "stickyHint": "El valor no se borra al enviar el registro -- se mantiene para la siguiente unidad (p. ej. el operario de turno)."
     },
     "fieldOptions": {
       "fit": {
@@ -380,7 +388,7 @@
     "data": "Datos",
     "asUnit": {
       "title": "Recorrido como unidad fabricada",
-      "empty": "Este codigo no es el identificador de ninguna unidad fabricada."
+      "empty": "Este codigo no es el identificador de ninguna unidad fabricada. Comprueba que la ruta use esta clave como identificador y que cada estacion capture un dato con el mismo bindingKey."
     },
     "asMaterial": {
       "title": "Usado como material en",
@@ -395,7 +403,7 @@
       "boms": "Listas de materiales",
       "manufacturingOrders": "Ordenes de fabricacion",
       "operators": "Operarios",
-      "serials": "Series"
+      "serials": "Series/lotes"
     },
     "columns": {
       "display_name": "Nombre",

@@ -145,7 +145,7 @@
       "product": "Product",
       "anyProduct": "Any product",
       "identifierKey": "Identifier key",
-      "identifierKeyHint": "The data key that identifies the unit at each station in the route (e.g. \"serial\", \"order\"). Every station in the route must capture a value under this same key.",
+      "identifierKeyHint": "The data key that identifies the unit at each station in the route (e.g. \"serial\", \"order\"). Every station in the route must capture a value under this same key; genealogy uses it to group the journey of the manufactured unit.",
       "steps": "Steps (station sequence)",
       "addStep": "Add step",
       "stepLabel": "Step label",
@@ -228,6 +228,9 @@
       "boundField": "Show",
       "boundFieldHint": "Which data of the linked widget to show: the raw value, or (if it comes from Odoo master data) one of its fields.",
       "boundFieldValue": "The entered/selected value",
+      "showDateTime": "Show current date and time",
+      "dateTimeFormat": "Date and time format",
+      "dateTimeFormatHint": "date-fns format, e.g. dd/MM/yyyy HH:mm:ss. Updates every second in the runtime.",
       "detailPreviewValue": "Example",
       "stationMaterialsPreview": "Informational only: list of lots/serials active in the station. Loaded from the Materials button.",
       "staticOptions": "Options (one per line: value|label)",
@@ -246,7 +249,8 @@
       "IMAGE": "Image",
       "TABLE": "Table",
       "BUTTON": "Button",
-      "STATION_MATERIALS": "Station materials"
+      "STATION_MATERIALS": "Station materials",
+      "PANEL": "Panel"
     },
     "dataSources": {
       "STATIC_LIST": "Static list",
@@ -267,7 +271,11 @@
       "targetScreen": "Target screen (#)",
       "selectionMode": "Selection",
       "valueColumn": "Stored value column",
-      "result": "Result"
+      "result": "Result",
+      "finalizesFlow": "Finishes flow",
+      "finalizesFlowHint": "Confirming this field's value (Enter, selection, scan) records the unit with result OK.",
+      "sticky": "Keep after submit",
+      "stickyHint": "The value isn't cleared when the record is submitted -- it stays for the next unit (e.g. the shift's operator)."
     },
     "fieldOptions": {
       "fit": {
@@ -380,7 +388,7 @@
     "data": "Data",
     "asUnit": {
       "title": "Journey as a manufactured unit",
-      "empty": "This code is not the identifier of any manufactured unit."
+      "empty": "This code is not the identifier of any manufactured unit. Check that the route uses this key as identifier and that each station captures data under the same bindingKey."
     },
     "asMaterial": {
       "title": "Used as material in",
@@ -395,7 +403,7 @@
       "boms": "Bills of materials",
       "manufacturingOrders": "Manufacturing orders",
       "operators": "Operators",
-      "serials": "Serials"
+      "serials": "Serials/lots"
     },
     "columns": {
       "display_name": "Name",

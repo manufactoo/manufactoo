@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
 import { IconBolt, IconDeviceDesktop, IconPlugConnected, IconScan } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ export const WIDGET_STYLE_PARTS: Record<string, string[]> = {
   NUMBER_INPUT: ["value"],
   TABLE: ["header", "cell"],
   IMAGE: ["image"],
+  PANEL: ["panel"],
 };
 
 /**
@@ -113,6 +115,17 @@ function controlSizeClass(style: WidgetStyle): string {
   return `${textClasses(style)} ${CONTROL_HEIGHT_CLASSES[style.fontSize ?? "MD"] ?? CONTROL_HEIGHT_CLASSES.MD}`;
 }
 
+/** Fecha/hora actual con formato, actualizada cada segundo cuando esta habilitada. */
+function useLiveDateTime(dateTimeFormat: string, enabled: boolean): string {
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    if (!enabled) return;
+    const interval = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(interval);
+  }, [enabled]);
+  return enabled ? format(now, dateTimeFormat) : "";
+}
+
 function textColorStyle(style: WidgetStyle): React.CSSProperties {
   return style.textColor ? { color: style.textColor } : {};
 }
@@ -154,12 +167,13 @@ export interface WidgetViewProps {
   onChange?: (value: unknown) => void;
   onButton?: () => void;
   /**
-   * Un TEXT_INPUT o DROPDOWN con config.result != NONE finaliza y registra la
-   * unidad en cuanto se confirma su valor -- Enter en TEXT_INPUT (p. ej. tras
-   * escanear un numero de serie), o cualquier forma de fijar el valor en
-   * DROPDOWN (seleccion manual, escaneo, Player). No decide nada aqui: solo
-   * reporta "este widget confirmo este valor", StationRuntimePage es quien
-   * mira config.result y decide si eso finaliza (ver conversacion 2026-07-31).
+   * Un TEXT_INPUT o DROPDOWN con config.finalizesFlow finaliza el flujo de la
+   * estacion y registra la unidad como OK en cuanto se confirma su valor --
+   * Enter en TEXT_INPUT (p. ej. tras escanear un numero de serie), o cualquier
+   * forma de fijar el valor en DROPDOWN (seleccion manual, escaneo, Player).
+   * No decide nada aqui: solo reporta "este widget confirmo este valor",
+   * StationRuntimePage es quien mira config.finalizesFlow y decide si eso
+   * finaliza (ver conversacion 2026-07-31).
    */
   onConfirm?: (widget: Widget, value: unknown) => void;
   /** Cuando un escaneo resuelve un codigo a un registro, para que el runtime lo pueda cachear (mostrar su nombre). */
@@ -227,15 +241,22 @@ export function WidgetView({
   if (widget.widgetType === "LABEL") {
     const style = partStyle(widget, "text");
     const boundTo = widget.config.boundTo as string | undefined;
-    // Vinculada a otro widget: el texto ya no se teclea, se calcula. En
-    // diseno no hay ningun dato real todavia (nadie ha tecleado/seleccionado
-    // nada), asi que se enseña un valor de ejemplo -- mismo sitio, mismo
-    // tamano, para que el diseñador vea donde y como de grande saldra.
-    const text = boundTo
-      ? interactive
-        ? cellText(resolvedRows?.[boundTo]?.[(widget.config.boundField as string) || BOUND_FIELD_VALUE])
-        : t("stations.widget.detailPreviewValue")
-      : (widget.config.text as string) ?? "";
+    const showDateTime = widget.config.showDateTime === true;
+    const dateTimeFormat = (widget.config.dateTimeFormat as string) || "dd/MM/yyyy HH:mm:ss";
+
+    const liveDateTime = useLiveDateTime(dateTimeFormat, showDateTime && interactive);
+    let text: string;
+    if (showDateTime) {
+      text = interactive ? liveDateTime : format(new Date(), dateTimeFormat);
+    } else if (boundTo) {
+      // Vinculada a otro widget: el texto ya no se teclea, se calcula. En
+      // diseno no hay ningun dato real todavia (nadie ha tecleado/seleccionado
+      // nada), asi que se enseña un valor de ejemplo -- mismo sitio, mismo
+      // tamano, para que el diseñador vea donde y como de grande saldra.
+      text = interactive ? cellText(resolvedRows?.[boundTo]?.[(widget.config.boundField as string) || BOUND_FIELD_VALUE]) : t("stations.widget.detailPreviewValue");
+    } else {
+      text = (widget.config.text as string) ?? "";
+    }
     return (
       <div className={`rounded px-1 ${textClasses(style)}`} style={{ ...textColorStyle(style), ...backgroundStyle(style) }}>
         {text}
@@ -244,6 +265,20 @@ export function WidgetView({
   }
   if (widget.widgetType === "IMAGE") {
     return <WidgetImage widget={widget} />;
+  }
+  if (widget.widgetType === "PANEL") {
+    // Puramente decorativo: agrupa visualmente otros widgets colocados
+    // encima (sin relacion real de datos -- ver conversacion 2026-08-01).
+    // pointer-events-none para que nunca robe un clic destinado a un widget
+    // que se solape con el; StationBuilderPage/StationRuntimePage ademas lo
+    // pintan siempre por detras (zIndex mas bajo) independientemente del
+    // orden en que se haya añadido.
+    // Puramente decorativo, sin margen extra: el espacio entre el borde del
+    // panel y los widgets "dentro" se consigue con el padding horizontal de
+    // los contenedores de los demas widgets (ver StationBuilderPage y
+    // StationRuntimePage). El contenedor padre tiene overflow-x visible.
+    const style = partStyle(widget, "panel");
+    return <div className="pointer-events-none h-full rounded-md border border-border" style={backgroundStyle(style)} />;
   }
   if (widget.widgetType === "TABLE") {
     return <WidgetTable widget={widget} value={value} onChange={change} interactive={interactive} />;

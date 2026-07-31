@@ -151,6 +151,10 @@ function defaultSize(type: string): { w: number; h: number } {
       // ver WIDGET_STYLE_PARTS): pinta una lista de lotes activos, necesita
       // mas sitio que un control de una sola linea.
       return { w: 6, h: 4 };
+    case "PANEL":
+      // Area de partida generosa: se coloca primero y se agranda/mueve a
+      // mano hasta cubrir los widgets que va a agrupar visualmente.
+      return { w: 6, h: 8 };
     default:
       return { w: 6, h: heightForFontSize("DROPDOWN", "value", "MD", false) ?? 1.5 };
   }
@@ -751,7 +755,14 @@ function WidgetBox({
   return (
     <div
       className="relative"
-      style={{ gridColumn: `${x + 1} / span ${w}`, gridRow: `${toFineRows(y) + 1} / span ${toFineRows(h)}` }}
+      style={{
+        gridColumn: `${x + 1} / span ${w}`,
+        gridRow: `${toFineRows(y) + 1} / span ${toFineRows(h)}`,
+        // PANEL es puramente decorativo: se queda siempre detras del resto,
+        // se haya añadido antes o despues, para no tapar ni robar el clic a
+        // los widgets colocados encima (ver conversacion 2026-08-01).
+        zIndex: widget.widgetType === "PANEL" ? 0 : 1,
+      }}
     >
       <div
         ref={boxRef}
@@ -774,12 +785,21 @@ function WidgetBox({
             abajo): es el hueco visual entre widgets (ver gridGeometry.ts --
             el grid en si ya no tiene gap vertical, cada widget lo reserva por
             su cuenta para que el ajuste de alto por tamano de fuente pueda ser
-            exacto). Relleno horizontal de 1px, sin relacion con eso: evita que
-            el borde izq/der del input/select se recorte por el redondeo de
-            subpixel del grid (mismo ajuste en runtime). */}
+            exacto). Relleno horizontal de 4px para los widgets reales: deja
+            aire entre su borde y el borde de un PANEL colocado detras, de modo
+            que los widgets "dentro" del panel no lo toquen. PANEL conserva 0px
+            para que su borde llegue justo al limite de su celda.
+            El 1px original evitaba que el borde izq/der del input/select se
+            recortara por el redondeo de subpixel del grid (mismo ajuste en runtime). */}
         <div
           className="no-scrollbar pointer-events-none absolute inset-0 flex flex-col justify-center overflow-x-visible overflow-y-auto"
-          style={{ paddingLeft: 1, paddingRight: 1, paddingTop: PART_GAP, paddingBottom: PART_GAP }}
+          style={{
+            // PANEL sin relleno horizontal para que su borde quede en el limite de su celda.
+            paddingLeft: widget.widgetType === "PANEL" ? 0 : 4,
+            paddingRight: widget.widgetType === "PANEL" ? 0 : 4,
+            paddingTop: PART_GAP,
+            paddingBottom: PART_GAP,
+          }}
         >
           <WidgetView widget={widget} interactive={false} deviceName={deviceName} eventName={eventName} />
         </div>
@@ -825,9 +845,9 @@ function StyleFields({
   // Solo lo accesorio (p. ej. la cabecera de una tabla) se puede ocultar del
   // todo; el contenido principal del widget es siempre obligatorio.
   const isOptional = (OPTIONAL_STYLE_PARTS[widget.widgetType] ?? []).includes(part);
-  // Una imagen no tiene texto que estilizar (tamano/negrita/alineacion no
-  // aplican), solo un color de fondo para el letterboxing.
-  const isImagePart = part === "image";
+  // Una imagen o un panel decorativo no tienen texto que estilizar
+  // (tamano/negrita/alineacion no aplican), solo un color de fondo.
+  const isImagePart = part === "image" || part === "panel";
   const hasLookup = widget.dataSource.type !== "" && widget.dataSource.type !== "STATIC_LIST" && Boolean(widget.config.lookupColumn);
 
   function setStyle(patch: Partial<WidgetStyle>) {
@@ -1289,11 +1309,41 @@ function PropertiesPanel({
       )}
 
       {descriptor?.category === "DATA" && (
-        <div className="flex items-center gap-2">
-          <Checkbox id="widget-required" checked={widget.required} onCheckedChange={(v) => onChange({ required: v === true })} />
-          <Label htmlFor="widget-required" className="text-xs">
-            {t("stations.widget.required")}
-          </Label>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Checkbox id="widget-required" checked={widget.required} onCheckedChange={(v) => onChange({ required: v === true })} />
+            <Label htmlFor="widget-required" className="text-xs">
+              {t("stations.widget.required")}
+            </Label>
+          </div>
+          {/* Solo TEXT_INPUT/DROPDOWN la tienen en el catalogo (ver WidgetCatalog) -- se pinta aqui, junto a "Obligatorio", en vez de en el bucle generico de configFields mas abajo, para que las dos casillas mas comunes vayan juntas. */}
+          {descriptor?.configFields.some((f) => f.key === "finalizesFlow") ? (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="widget-finalizes-flow"
+                checked={widget.config.finalizesFlow === true}
+                onCheckedChange={(v) => setConfig("finalizesFlow", v === true ? true : undefined)}
+              />
+              <Label htmlFor="widget-finalizes-flow" className="text-xs">
+                {t("stations.fields.finalizesFlow")}
+              </Label>
+              <InfoTooltip text={t("stations.fields.finalizesFlowHint")} />
+            </div>
+          ) : null}
+          {/* Igual criterio que "Finaliza flujo" justo arriba: se pinta aqui, junto a "Obligatorio", en vez de en el bucle generico. */}
+          {descriptor?.configFields.some((f) => f.key === "sticky") ? (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="widget-sticky"
+                checked={widget.config.sticky === true}
+                onCheckedChange={(v) => setConfig("sticky", v === true ? true : undefined)}
+              />
+              <Label htmlFor="widget-sticky" className="text-xs">
+                {t("stations.fields.sticky")}
+              </Label>
+              <InfoTooltip text={t("stations.fields.stickyHint")} />
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -1433,44 +1483,75 @@ function PropertiesPanel({
           )}
 
       {/* Una Etiqueta es texto fijo (se teclea directamente encima del propio
-          widget en el canvas, ver InlineTextEdit en WidgetView) O esta
-          vinculada a otro widget de la estacion para enseñar en vivo uno de
-          sus datos -- el valor tecleado/seleccionado, o (si el origen trae
-          datos de Odoo) una de sus columnas resueltas, p. ej. el nombre del
-          operario validado en un TEXT_INPUT de mas arriba. */}
+          widget en el canvas, ver InlineTextEdit en WidgetView), esta
+          vinculada a otro widget de la estacion, o muestra la fecha/hora
+          actual en vivo. */}
       {widget.widgetType === "LABEL" && (
         <>
-          <div className="space-y-1.5">
-            <FieldLabel text={t("stations.widget.boundTo")} hint={t("stations.widget.boundToHint")} />
-            <Select
-              value={boundTo ?? "NONE"}
-              onValueChange={(v) =>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="widget-show-datetime"
+              checked={widget.config.showDateTime === true}
+              onCheckedChange={(v) =>
                 onChange({
                   config: {
                     ...widget.config,
-                    boundTo: v === "NONE" ? undefined : v,
-                    // El campo elegido pertenece al origen anterior; si el
-                    // origen cambia, se vuelve a elegir (mismo criterio que
-                    // el origen de datos de un DROPDOWN/TEXT_INPUT).
-                    boundField: undefined,
+                    showDateTime: v === true ? true : undefined,
+                    // La fecha/hora anula el resto de modos de texto.
+                    text: v === true ? undefined : widget.config.text,
+                    boundTo: v === true ? undefined : widget.config.boundTo,
+                    boundField: v === true ? undefined : widget.config.boundField,
                   },
                 })
               }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">{t("stations.widget.boundToNone")}</SelectItem>
-                {bindableWidgets.map((b) => (
-                  <SelectItem key={b.bindingKey} value={b.bindingKey}>
-                    {b.label || b.bindingKey}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
+            <Label htmlFor="widget-show-datetime" className="text-xs">
+              {t("stations.widget.showDateTime")}
+            </Label>
           </div>
-          {boundTarget && (
+          {widget.config.showDateTime === true && (
+            <div className="space-y-1.5">
+              <FieldLabel text={t("stations.widget.dateTimeFormat")} hint={t("stations.widget.dateTimeFormatHint")} />
+              <Input
+                value={(widget.config.dateTimeFormat as string) ?? ""}
+                placeholder="dd/MM/yyyy HH:mm:ss"
+                onChange={(e) => setConfig("dateTimeFormat", e.target.value)}
+              />
+            </div>
+          )}
+          {widget.config.showDateTime !== true && (
+            <>
+              <div className="space-y-1.5">
+                <FieldLabel text={t("stations.widget.boundTo")} hint={t("stations.widget.boundToHint")} />
+                <Select
+                  value={boundTo ?? "NONE"}
+                  onValueChange={(v) =>
+                    onChange({
+                      config: {
+                        ...widget.config,
+                        boundTo: v === "NONE" ? undefined : v,
+                        // El campo elegido pertenece al origen anterior; si el
+                        // origen cambia, se vuelve a elegir (mismo criterio que
+                        // el origen de datos de un DROPDOWN/TEXT_INPUT).
+                        boundField: undefined,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">{t("stations.widget.boundToNone")}</SelectItem>
+                    {bindableWidgets.map((b) => (
+                      <SelectItem key={b.bindingKey} value={b.bindingKey}>
+                        {b.label || b.bindingKey}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {boundTarget && (
             <div className="space-y-1.5">
               <FieldLabel text={t("stations.widget.boundField")} hint={t("stations.widget.boundFieldHint")} />
               <Select
@@ -1491,6 +1572,8 @@ function PropertiesPanel({
               </Select>
             </div>
           )}
+            </>
+          )}
         </>
       )}
 
@@ -1503,7 +1586,29 @@ function PropertiesPanel({
       {descriptor?.configFields
         .filter((field) => !(widget.widgetType === "LABEL" && field.key === "text" && Boolean(boundTo)))
         .filter((field) => !(widget.widgetType === "BUTTON" && field.key === "result" && widget.config.action !== "SUBMIT"))
-        .map((field) => (
+        .filter((field) => field.key !== "finalizesFlow" && field.key !== "sticky") // ya pintadas junto a "Obligatorio", ver arriba
+        .map((field) =>
+        field.type === "CHECKBOX" ? (
+        /* Casilla transversal (mismo aspecto que "Obligatorio"): se guarda
+            como true o se quita de config, nunca false -- igual que
+            filterByStationRoute, para que el JSON solo diga algo cuando el
+            comportamiento especial esta activo. */
+        <div key={field.key} className="flex items-center gap-2">
+          <Checkbox
+            id={`widget-field-${field.key}`}
+            checked={widget.config[field.key] === true}
+            onCheckedChange={(v) => setConfig(field.key, v === true ? true : undefined)}
+          />
+          <Label htmlFor={`widget-field-${field.key}`} className="text-xs">
+            {t(field.labelKey, { defaultValue: field.key })}
+          </Label>
+          {/* Hint opcional: solo se pinta si existe la clave "<field>Hint" (p. ej. stickyHint, finalizesFlowHint). */}
+          {(() => {
+            const hint = t(`${field.labelKey}Hint`, { defaultValue: "" });
+            return hint ? <InfoTooltip text={hint} /> : null;
+          })()}
+        </div>
+        ) : (
         <div key={field.key} className="space-y-1.5">
           <Label className="text-xs">
             {t(field.labelKey, { defaultValue: field.key })}
@@ -1546,7 +1651,8 @@ function PropertiesPanel({
             />
           )}
         </div>
-      ))}
+        )
+      )}
 
       {/* Estilo (tamano, negrita, alineacion, colores): un campo mas del
           panel, no una barra de edicion aparte -- ver StyleFields. La mayoria

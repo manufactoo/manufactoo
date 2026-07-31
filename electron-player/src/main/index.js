@@ -173,7 +173,7 @@ async function stationDeviceAndEventIds() {
 }
 
 async function syncDevicesAndEvents() {
-  if (!config.token || !deviceRegistry) return;
+  if (!config.token || !deviceRegistry || !config.stationId) return;
   try {
     const [devices, events, { deviceIds, eventIds }] = await Promise.all([
       api.listDevices(config.token),
@@ -184,6 +184,33 @@ async function syncDevicesAndEvents() {
     deviceRegistry.syncEvents(events.filter((e) => e.enabled && eventIds.has(e.id)), config.mqttBrokerUrl);
   } catch (err) {
     log("No se pudieron sincronizar dispositivos/eventos: " + err.message);
+  }
+}
+
+/** Vigila /api/players/me: si el servidor limpia la estacion asignada (p. ej.
+    la estacion fue borrada), volvemos a la pantalla de espera de asignacion. */
+let stationWatchInProgress = false;
+async function watchStationAssignment() {
+  if (stationWatchInProgress || !config.token || !config.stationId) return;
+  stationWatchInProgress = true;
+  try {
+    const me = await api.me(config.token);
+    if (me.stationId == null && config.stationId != null) {
+      log("La estacion asignada fue eliminada en el servidor; volviendo a esperar asignacion");
+      const oldWindow = currentWindow;
+      config = saveConfig({ ...config, stationId: undefined });
+      currentWindow = openPairingWindow();
+      oldWindow?.destroy();
+      const newStationId = await waitForStationAssignment(currentWindow);
+      config = saveConfig({ ...config, stationId: newStationId });
+      const oldWindow2 = currentWindow;
+      currentWindow = openStationWindow(newStationId);
+      oldWindow2?.destroy();
+    }
+  } catch (err) {
+    log("Error vigilando asignacion de estacion: " + err.message);
+  } finally {
+    stationWatchInProgress = false;
   }
 }
 
@@ -308,6 +335,9 @@ async function main() {
 
   await syncDevicesAndEvents();
   setInterval(syncDevicesAndEvents, DEVICE_SYNC_INTERVAL_MS);
+
+  await watchStationAssignment();
+  setInterval(watchStationAssignment, STATION_POLL_INTERVAL_MS);
 }
 
 app.on("window-all-closed", () => {

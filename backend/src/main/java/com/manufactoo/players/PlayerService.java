@@ -113,6 +113,14 @@ public class PlayerService {
         StationDto station = stationRepository.findById(player.getStationId())
                 .map(StationDto::from)
                 .orElse(null);
+        if (station == null) {
+            // La estacion asignada fue borrada: limpiar la asignacion para que
+            // el Player vuelva a la pantalla de espera en vez de quedarse
+            // sondeando una estacion fantasma.
+            player.setStationId(null);
+            repository.save(player);
+            return new PlayerMeDto(null, null);
+        }
         return new PlayerMeDto(player.getStationId(), station);
     }
 

@@ -326,11 +326,11 @@ public class StationService {
         // Ya no hay un "Finalizar" implicito en el runtime (ver conversacion
         // 2026-07-31): el diseñador tiene que colocar EL/LOS widgets que
         // terminan el registro -- un BUTTON con action=SUBMIT, o un TEXT_INPUT/
-        // DROPDOWN con resultado != NONE (confirmarlo finaliza directamente,
-        // p. ej. escanear el numero de serie). Sin limite de cuantos puede
-        // haber (el usuario decidio no imponer unicidad -- OK+NG conviven a
-        // proposito), pero hace falta AL MENOS uno en toda la estacion, en
-        // cualquier pantalla, o el registro nunca podria terminarse.
+        // DROPDOWN con "finaliza el flujo" marcado (confirmarlo finaliza
+        // directamente, p. ej. escanear el numero de serie). Sin limite de
+        // cuantos puede haber (el usuario decidio no imponer unicidad), pero
+        // hace falta AL MENOS uno en toda la estacion, en cualquier pantalla,
+        // o el registro nunca podria terminarse.
         boolean hasFinalizer = screens.stream()
                 .flatMap(s -> (s.widgets() != null ? s.widgets() : List.<UpsertWidget>of()).stream())
                 .anyMatch(StationService::isFinalizerWidget);
@@ -381,7 +381,7 @@ public class StationService {
         }
     }
 
-    /** BUTTON con action=SUBMIT, o TEXT_INPUT/DROPDOWN con resultado != NONE -- ver validate(). */
+    /** BUTTON con action=SUBMIT, o TEXT_INPUT/DROPDOWN con "finaliza el flujo" marcado -- ver validate(). */
     private static boolean isFinalizerWidget(UpsertWidget w) {
         Map<String, Object> config = w.config();
         if (WidgetType.BUTTON.name().equals(w.widgetType())) {
@@ -389,8 +389,8 @@ public class StationService {
             return "SUBMIT".equals(action);
         }
         if (WidgetType.TEXT_INPUT.name().equals(w.widgetType()) || WidgetType.DROPDOWN.name().equals(w.widgetType())) {
-            Object result = config != null ? config.get("result") : null;
-            return result != null && !"NONE".equals(result.toString());
+            Object finalizesFlow = config != null ? config.get("finalizesFlow") : null;
+            return finalizesFlow != null && Boolean.parseBoolean(finalizesFlow.toString());
         }
         return false;
     }
@@ -568,9 +568,11 @@ public class StationService {
     private void validateLabelBinding(UpsertWidget w, Set<String> allBindingKeys) {
         Object text = w.config() != null ? w.config().get("text") : null;
         Object boundTo = w.config() != null ? w.config().get("boundTo") : null;
+        Object showDateTime = w.config() != null ? w.config().get("showDateTime") : null;
+        boolean hasDateTime = showDateTime != null && Boolean.parseBoolean(showDateTime.toString());
         boolean hasText = text != null && !text.toString().isBlank();
         boolean hasBinding = boundTo != null && !boundTo.toString().isBlank();
-        if (!hasText && !hasBinding) {
+        if (!hasText && !hasBinding && !hasDateTime) {
             throw badRequest(messages.get("station.label.needsTextOrBinding"));
         }
         if (hasBinding && !allBindingKeys.contains(boundTo.toString())) {
