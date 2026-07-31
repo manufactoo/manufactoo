@@ -9,7 +9,17 @@ type Row = Record<string, unknown>;
 
 const PAGE_SIZE = 50;
 
-export function MasterDataTable({ endpoint, columns }: { endpoint: string; columns: string[] }) {
+export function MasterDataTable({
+  endpoint,
+  columns,
+  labelOverrides,
+}: {
+  endpoint: string;
+  columns: string[];
+  /** Traduccion distinta para una columna concreta (p. ej. "barcode" es el
+   * codigo de operario en Odoo, no un codigo de barras de producto). */
+  labelOverrides?: Record<string, string>;
+}) {
   const { t } = useTranslation("dashboard");
   const [rows, setRows] = React.useState<Row[] | null>(null);
   const [offset, setOffset] = React.useState(0);
@@ -65,7 +75,7 @@ export function MasterDataTable({ endpoint, columns }: { endpoint: string; colum
         <TableHeader>
           <TableRow>
             {columns.map((col) => (
-              <TableHead key={col}>{t(`masterData.columns.${col}`, { defaultValue: col })}</TableHead>
+              <TableHead key={col}>{t(labelOverrides?.[col] ?? `masterData.columns.${col}`, { defaultValue: col })}</TableHead>
             ))}
           </TableRow>
         </TableHeader>

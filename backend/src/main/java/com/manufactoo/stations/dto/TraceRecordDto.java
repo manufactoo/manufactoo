@@ -11,9 +11,10 @@ public record TraceRecordDto(
         Long stationId,
         Long screenId,
         Map<String, Object> capturedData,
+        String result,
         Instant createdAt
 ) {
     public static TraceRecordDto from(StationTraceRecord r) {
-        return new TraceRecordDto(r.getId(), r.getStationId(), r.getScreenId(), r.getCapturedData(), r.getCreatedAt());
+        return new TraceRecordDto(r.getId(), r.getStationId(), r.getScreenId(), r.getCapturedData(), r.getResult(), r.getCreatedAt());
     }
 }

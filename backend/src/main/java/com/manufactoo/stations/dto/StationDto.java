@@ -11,6 +11,7 @@ public record StationDto(
         String description,
         boolean enabled,
         List<ScreenDto> screens,
+        List<String> positions,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -21,6 +22,7 @@ public record StationDto(
                 station.getDescription(),
                 station.isEnabled(),
                 station.getScreens().stream().map(ScreenDto::from).toList(),
+                station.getPositions(),
                 station.getCreatedAt(),
                 station.getUpdatedAt()
         );

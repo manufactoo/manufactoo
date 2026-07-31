@@ -39,6 +39,11 @@ class ManufactooApi {
     return this._json("GET", "/api/events", null, token);
   }
 
+  /** Mismo endpoint que ya usa la pagina web del runtime, para saber que dispositivos/eventos usan de verdad los widgets de esta estacion (ver stationDeviceAndEventIds en index.js). */
+  async getStation(stationId, token) {
+    return this._json("GET", `/api/stations/${encodeURIComponent(stationId)}`, null, token);
+  }
+
   async _json(method, path, body, token) {
     const headers = { "Content-Type": "application/json" };
     if (token) headers["X-Player-Token"] = token;
@@ -53,8 +58,12 @@ class ManufactooApi {
       const text = await res.text().catch(() => "");
       throw new Error(`${method} ${path} -> HTTP ${res.status} ${text}`);
     }
-    if (res.status === 204) return null;
-    return res.json();
+    // Algunos endpoints (p. ej. heartbeat) devuelven 200 con el cuerpo vacio
+    // en vez de 204 (un metodo void de Spring no anade @ResponseStatus): sin
+    // esto, res.json() sobre una cadena vacia revienta con "Unexpected end
+    // of JSON input".
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   }
 }
 

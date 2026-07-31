@@ -1,5 +1,6 @@
 package com.manufactoo.players.release;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.players.release.dto.PlayerReleaseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,9 +30,11 @@ public class PlayerReleaseService {
     private static final DateTimeFormatter ISO_MILLIS = DateTimeFormatter.ISO_INSTANT;
 
     private final PlayerReleaseRepository repository;
+    private final Messages messages;
 
-    public PlayerReleaseService(PlayerReleaseRepository repository) {
+    public PlayerReleaseService(PlayerReleaseRepository repository, Messages messages) {
         this.repository = repository;
+        this.messages = messages;
     }
 
     public List<PlayerReleaseDto> list() {
@@ -40,21 +43,21 @@ public class PlayerReleaseService {
 
     public PlayerReleaseDto upload(MultipartFile file, String version, PlayerReleasePlatform platform, String releaseNotes) {
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El fichero esta vacio.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("player.release.emptyFile"));
         }
         if (version == null || !SEMVER.matcher(version).matches()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La version debe tener formato semver, p. ej. 1.2.3.");
+                    messages.get("player.release.invalidVersion"));
         }
         if (platform == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falta la plataforma (WINDOWS/MAC/LINUX).");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("player.release.missingPlatform"));
         }
 
         byte[] bytes;
         try {
             bytes = file.getBytes();
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pudo leer el fichero.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("player.release.readError"));
         }
 
         PlayerRelease release = new PlayerRelease();
@@ -72,12 +75,12 @@ public class PlayerReleaseService {
 
     public PlayerRelease download(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version no encontrada."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("player.release.notFound")));
     }
 
     public void delete(Long id) {
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Version no encontrada.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("player.release.notFound"));
         }
         repository.deleteById(id);
     }
@@ -86,7 +89,7 @@ public class PlayerReleaseService {
     public String latestManifest(PlayerReleasePlatform platform) {
         PlayerRelease latest = repository.findFirstByPlatformOrderByPublishedAtDesc(platform)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Todavia no se ha publicado ninguna version del Player para " + platform + "."));
+                        messages.get("player.release.noneForPlatform", platform)));
 
         String downloadPath = latest.getId() + "/download";
         String releaseDate = ISO_MILLIS.format(latest.getPublishedAt());

@@ -1,5 +1,6 @@
 package com.manufactoo.masterdata;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.crypto.CryptoService;
 import com.manufactoo.odoo.OdooConnection;
 import com.manufactoo.odoo.OdooConnectionRepository;
@@ -26,18 +27,20 @@ public class MasterDataService {
     private final OdooConnectionRepository odooConnectionRepository;
     private final CryptoService cryptoService;
     private final OdooConnectorFactory connectorFactory;
+    private final Messages messages;
 
     public MasterDataService(OdooConnectionRepository odooConnectionRepository, CryptoService cryptoService,
-                              OdooConnectorFactory connectorFactory) {
+                              OdooConnectorFactory connectorFactory, Messages messages) {
         this.odooConnectionRepository = odooConnectionRepository;
         this.cryptoService = cryptoService;
         this.connectorFactory = connectorFactory;
+        this.messages = messages;
     }
 
     public List<Map<String, Object>> list(OdooMasterDataEntity entity, int limit, int offset) {
         OdooConnection connection = odooConnectionRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No hay conexion Odoo configurada todavia. Completa Configuracion > Conexion Odoo."));
+                        messages.get("masterData.noConnection")));
 
         String apiKeyOrPassword = cryptoService.decrypt(connection.getApiKeyEncrypted());
 
@@ -47,17 +50,17 @@ public class MasterDataService {
             connector = connectorFactory.connect(connection.getHost(), connection.getPort());
             uid = connector.authenticate(connection.getDatabase(), connection.getUsername(), apiKeyOrPassword);
         } catch (OdooJsonRpcException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No se pudo conectar con Odoo: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, messages.get("masterData.connectionFailed", e.getMessage()));
         }
         if (uid == null) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "No se pudo autenticar en Odoo con las credenciales guardadas. Revisa Configuracion > Conexion Odoo.");
+                    messages.get("masterData.authFailed"));
         }
 
         try {
             return connector.listMasterData(entity, connection.getDatabase(), uid, apiKeyOrPassword, limit, offset);
         } catch (OdooJsonRpcException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Error leyendo datos de Odoo: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, messages.get("masterData.readError", e.getMessage()));
         }
     }
 }

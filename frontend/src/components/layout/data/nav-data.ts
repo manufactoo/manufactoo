@@ -1,4 +1,4 @@
-import { IconApps, IconBuildingFactory2, IconCpu, IconDatabase, IconLayoutDashboard, IconSettings, IconUserCircle } from "@tabler/icons-react";
+import { IconApps, IconBuildingFactory2, IconCpu, IconDatabase, IconLayoutDashboard, IconSettings, IconTimeline, IconUserCircle } from "@tabler/icons-react";
 import { type NavGroup } from "../types";
 
 /** Nucleo del menu: siempre visible, no depende de ninguna app instalada. */
@@ -26,6 +26,7 @@ export const appNavGroups: Record<string, NavGroup> = {
     items: [
       { titleKey: "nav.devices", url: "/dashboard/devices", icon: IconCpu },
       { titleKey: "nav.stations", url: "/dashboard/stations", icon: IconBuildingFactory2 },
+      { titleKey: "nav.genealogy", url: "/dashboard/genealogy", icon: IconTimeline },
     ],
   },
 };

@@ -6,7 +6,12 @@ import { MasterDataTable } from "./MasterDataTable";
 const PRODUCT_COLUMNS = ["display_name", "default_code", "barcode", "qty_available", "uom_id"];
 const BOM_COLUMNS = ["display_name", "product_tmpl_id", "product_qty", "type", "code"];
 const MANUFACTURING_ORDER_COLUMNS = ["display_name", "product_id", "product_qty", "state", "date_start", "date_finished"];
-const OPERATOR_COLUMNS = ["name", "job_title", "department_id", "work_email"];
+const OPERATOR_COLUMNS = ["name", "barcode", "job_title", "department_id", "work_email"];
+// En Odoo el codigo de operario/badge de fichaje se guarda en el campo
+// "barcode" de hr.employee (el mismo nombre tecnico que el codigo de barras
+// de un producto) -- aqui se traduce como "codigo de empleado" para que no
+// se confunda con un codigo de barras fisico.
+const OPERATOR_LABELS = { barcode: "masterData.columns.employeeCode" };
 const SERIAL_COLUMNS = ["name", "product_id", "ref"];
 
 export function MasterDataPage() {
@@ -52,7 +57,7 @@ export function MasterDataPage() {
         <TabsContent value="operators">
           <Card>
             <CardContent className="pt-6">
-              <MasterDataTable endpoint="/api/master-data/operators" columns={OPERATOR_COLUMNS} />
+              <MasterDataTable endpoint="/api/master-data/operators" columns={OPERATOR_COLUMNS} labelOverrides={OPERATOR_LABELS} />
             </CardContent>
           </Card>
         </TabsContent>

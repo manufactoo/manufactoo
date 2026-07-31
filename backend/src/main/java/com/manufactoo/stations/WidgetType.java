@@ -21,5 +21,15 @@ public enum WidgetType {
     /** Tabla enlazada a un origen de datos: muestra todas sus filas (ordenes, productos...). */
     TABLE,
     /** Boton de navegacion de la secuencia (siguiente/anterior/ir a/finalizar). */
-    BUTTON
+    BUTTON,
+    /**
+     * Lista de series/lotes cargados en la estacion ahora mismo (p. ej. los
+     * carretes de componentes de una maquina de pick and place). Puramente
+     * informativo -- no requiere binding ni lo rellena el operario: los
+     * lotes activos son un dato de la ESTACION, no de este widget ni de
+     * ninguna "ranura" con nombre (varios lotes del mismo producto pueden
+     * estar activos a la vez). Cada unidad que pasa mientras tanto los
+     * hereda automaticamente (ver StationService.mergeActiveMaterialLoads).
+     */
+    STATION_MATERIALS
 }

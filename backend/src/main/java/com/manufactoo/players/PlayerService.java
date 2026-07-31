@@ -1,5 +1,6 @@
 package com.manufactoo.players;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.players.dto.AssignPlayerRequest;
 import com.manufactoo.players.dto.HeartbeatRequest;
 import com.manufactoo.players.dto.PairingStatusResponse;
@@ -35,10 +36,12 @@ public class PlayerService {
 
     private final StationPlayerRepository repository;
     private final StationRepository stationRepository;
+    private final Messages messages;
 
-    public PlayerService(StationPlayerRepository repository, StationRepository stationRepository) {
+    public PlayerService(StationPlayerRepository repository, StationRepository stationRepository, Messages messages) {
         this.repository = repository;
         this.stationRepository = stationRepository;
+        this.messages = messages;
     }
 
     public RegisterPlayerResponse register(RegisterPlayerRequest request) {
@@ -83,7 +86,7 @@ public class PlayerService {
     public PlayerDto assign(Long id, AssignPlayerRequest request) {
         StationPlayer player = find(id);
         if (request.stationId() != null && !stationRepository.existsById(request.stationId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estacion no encontrada.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("station.notFound"));
         }
         if (request.name() != null && !request.name().isBlank()) {
             player.setName(request.name());
@@ -95,7 +98,7 @@ public class PlayerService {
 
     public void delete(Long id) {
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player no encontrado.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("player.notFound"));
         }
         repository.deleteById(id);
     }
@@ -121,7 +124,7 @@ public class PlayerService {
 
     private StationPlayer find(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player no encontrado."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("player.notFound")));
     }
 
     private PlayerDto toDto(StationPlayer player) {

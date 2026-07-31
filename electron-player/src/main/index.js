@@ -151,12 +151,37 @@ function openStationWindow(stationId) {
   return win;
 }
 
+/**
+ * IDs de dispositivo/evento que de verdad usa algun widget de la estacion
+ * asignada a este Player -- /api/devices y /api/events devuelven TODOS los
+ * de la instalacion (otras estaciones incluidas, o dispositivos sueltos sin
+ * usar todavia), asi que sin este filtro el Player intentaria abrir puerto
+ * serie o suscribirse a MQTT para cosas que no son suyas.
+ */
+async function stationDeviceAndEventIds() {
+  const deviceIds = new Set();
+  const eventIds = new Set();
+  if (!config.stationId) return { deviceIds, eventIds };
+  const station = await api.getStation(config.stationId, config.token);
+  for (const screen of station.screens ?? []) {
+    for (const widget of screen.widgets ?? []) {
+      if (widget.sourceDeviceId) deviceIds.add(widget.sourceDeviceId);
+      if (widget.sourceEventId) eventIds.add(widget.sourceEventId);
+    }
+  }
+  return { deviceIds, eventIds };
+}
+
 async function syncDevicesAndEvents() {
   if (!config.token || !deviceRegistry) return;
   try {
-    const [devices, events] = await Promise.all([api.listDevices(config.token), api.listEvents(config.token)]);
-    deviceRegistry.syncDevices(devices.filter((d) => d.enabled));
-    deviceRegistry.syncEvents(events.filter((e) => e.enabled), config.mqttBrokerUrl);
+    const [devices, events, { deviceIds, eventIds }] = await Promise.all([
+      api.listDevices(config.token),
+      api.listEvents(config.token),
+      stationDeviceAndEventIds(),
+    ]);
+    deviceRegistry.syncDevices(devices.filter((d) => d.enabled && deviceIds.has(d.id)));
+    deviceRegistry.syncEvents(events.filter((e) => e.enabled && eventIds.has(e.id)), config.mqttBrokerUrl);
   } catch (err) {
     log("No se pudieron sincronizar dispositivos/eventos: " + err.message);
   }

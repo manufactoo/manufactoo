@@ -186,12 +186,15 @@
       "screenTitle": "Titulo de la pantalla",
       "preview": "Vista operario",
       "screenN": "Pantalla {{n}}",
-      "addScreen": "Anadir pantalla"
+      "addScreen": "Anadir pantalla",
+      "positions": "Posiciones",
+      "positionsHint": "Posiciones fisicas de esta estacion (p. ej. R1, Feeder-A). Cargar un material en una posicion que ya tenia algo sustituye lo anterior -- sin posicion, el material simplemente se añade.",
+      "positionPlaceholder": "p. ej. R1",
+      "removePosition": "Quitar posicion {{name}}"
     },
     "widget": {
-      "label": "Etiqueta",
       "bindingKey": "Clave de datos",
-      "bindingKeyHint": "Nombre con el que se guarda el valor en trazabilidad (p. ej. orden, operario).",
+      "bindingKeyHint": "Nombre con el que se guarda el valor en trazabilidad y con el que aparece este campo en avisos y en \"Vincular a\" (p. ej. orden, operario).",
       "required": "Obligatorio",
       "image": "Imagen",
       "source": "Origen del valor",
@@ -204,11 +207,29 @@
       "chooseEvent": "Elige el evento",
       "sourceDeviceHint": "El dato de este dispositivo (p. ej. un lector) rellenara este campo.",
       "sourceEventHint": "La estacion espera este topic y su valor rellena el campo.",
+      "materialPosition": "Posicion",
+      "materialPositionHint": "Si este lector alimenta una posicion fisica concreta, cada codigo leido sustituira lo que hubiera antes ahi. Sin posicion, cada codigo se añade sin sustituir nada.",
+      "noPosition": "Sin posicion",
       "lookupColumn": "Columna de coincidencia",
       "chooseLookupColumn": "Elige la columna",
       "lookupColumnHint": "El codigo leido (p. ej. el codigo de barras de la credencial) se buscara en esta columna; se guardara el registro encontrado y se mostrara su nombre.",
+      "lookupColumnHintManual": "El operario escribira este dato en el campo (p. ej. el codigo de operario); se comprobara que existe en Odoo.",
       "dataSource": "Origen de datos",
       "chooseDataSource": "Elige el origen",
+      "noDataSource": "Ninguno (texto libre)",
+      "labelColumns": "Mostrar como",
+      "labelColumnsHint": "Que columna(s) se ven en cada opcion del desplegable. Sin elegir ninguna, se usa el nombre. Eligiendo varias, se combinan en el mismo orden.",
+      "filterByStationRoute": "Solo ordenes cuyo producto tiene ruta por esta estacion",
+      "filterByStationRouteHint": "Se mira el producto de cada orden: si tiene una ruta habilitada que pasa por esta estacion, se enseña; si no, se oculta. Si ninguna ruta incluye esta estacion, o alguna no fija producto (vale para cualquiera), se enseñan todas igualmente.",
+      "textInputDataSourceHint": "Opcional: primero elige de que dato maestro de Odoo viene el valor (p. ej. Operarios), luego que dato se teclea (p. ej. codigo de operario). Para mostrar un dato del registro encontrado (nombre, departamento...) añade una Etiqueta y vinculala a este campo.",
+      "boundTo": "Vincular a",
+      "boundToHint": "Esta Etiqueta puede mostrar en vivo un dato de otro widget de la estacion (el codigo validado en un campo de texto, la seleccion de un desplegable o una tabla...) en vez de un texto fijo.",
+      "boundToNone": "Ninguno (texto fijo)",
+      "boundField": "Mostrar",
+      "boundFieldHint": "Que dato del widget vinculado se enseña: el valor tal cual, o (si viene de un dato maestro de Odoo) una de sus columnas.",
+      "boundFieldValue": "El valor introducido/seleccionado",
+      "detailPreviewValue": "Ejemplo",
+      "stationMaterialsPreview": "Solo informativo: lista de lotes/series activos en la estacion. Se cargan desde el boton Materiales.",
       "staticOptions": "Opciones (una por linea: valor|etiqueta)",
       "position": "Posicion y tamano",
       "x": "Columna (X)",
@@ -224,7 +245,8 @@
       "LABEL": "Etiqueta de texto",
       "IMAGE": "Imagen",
       "TABLE": "Tabla",
-      "BUTTON": "Boton"
+      "BUTTON": "Boton",
+      "STATION_MATERIALS": "Materiales de la estacion"
     },
     "dataSources": {
       "STATIC_LIST": "Lista estatica",
@@ -244,7 +266,8 @@
       "action": "Accion",
       "targetScreen": "Pantalla destino (nº)",
       "selectionMode": "Seleccion",
-      "valueColumn": "Columna de valor guardado"
+      "valueColumn": "Columna de valor guardado",
+      "result": "Resultado"
     },
     "fieldOptions": {
       "fit": {
@@ -255,7 +278,13 @@
         "NEXT": "Siguiente pantalla",
         "PREV": "Pantalla anterior",
         "GOTO": "Ir a pantalla...",
-        "SUBMIT": "Finalizar y registrar"
+        "SUBMIT": "Finalizar y registrar",
+        "MATERIALS": "Abrir materiales"
+      },
+      "result": {
+        "NONE": "Sin resultado",
+        "OK": "OK",
+        "NG": "NG"
       },
       "selectionMode": {
         "NONE": "Solo mostrar",
@@ -263,8 +292,36 @@
         "MULTI": "Seleccion multiple"
       }
     },
+    "style": {
+      "title": "Estilo",
+      "fontSize": "Tamano de texto",
+      "bold": "Negrita",
+      "align": "Alineacion",
+      "textColor": "Color de texto",
+      "backgroundColor": "Color de fondo",
+      "show": "Mostrar",
+      "sizes": {
+        "SM": "Pequeno",
+        "MD": "Normal",
+        "LG": "Grande",
+        "XL": "Muy grande",
+        "XXL": "Enorme"
+      },
+      "aligns": {
+        "LEFT": "Izquierda",
+        "CENTER": "Centro",
+        "RIGHT": "Derecha"
+      },
+      "parts": {
+        "text": "Texto",
+        "value": "Valor",
+        "header": "Cabecera",
+        "cell": "Celdas",
+        "image": "Imagen"
+      }
+    },
     "runtime": {
-      "submit": "Finalizar y registrar",
+      "defaultFinishText": "Finalizar y registrar",
       "submitted": "Registro guardado",
       "submitError": "No se pudo guardar el registro.",
       "loadOptionsError": "No se pudieron cargar los datos desde Odoo.",
@@ -274,22 +331,60 @@
       "next": "Siguiente",
       "emptyScreen": "Esta pantalla no tiene widgets todavia.",
       "scanPlaceholder": "Escanea o pega el codigo y pulsa Enter",
-      "scanNotFound": "No se ha encontrado ningun registro con el codigo \"{{code}}\".",
+      "scanNotFound": "{{field}}: no se ha encontrado ningun registro con el codigo \"{{code}}\".",
+      "invalidCode": "{{field}}: el codigo \"{{code}}\" no es valido en Odoo.",
       "viaPlayer": "Conectado via Player",
-      "browserOnly": "Solo navegador: rellena a mano"
+      "browserOnly": "Solo navegador: rellena a mano",
+      "loadedAt": "Cargado: {{date}}",
+      "materialsTitle": "Materiales",
+      "materialsEmpty": "No hay ningun lote/serie cargado en esta estacion ahora mismo.",
+      "invalidMaterialCode": "El codigo \"{{code}}\" no es valido en Odoo.",
+      "addMaterial": "Añadir",
+      "unload": "Quitar"
     },
     "records": {
-      "title": "Genealogia",
+      "title": "Registros",
       "link": "Registros",
       "back": "Volver",
       "empty": "No hay registros todavia.",
-      "date": "Fecha"
+      "date": "Fecha",
+      "result": "Resultado",
+      "resultOk": "OK",
+      "resultNg": "NG"
+    },
+    "materials": {
+      "title": "Materiales",
+      "link": "Materiales",
+      "back": "Volver",
+      "empty": "No hay ningun lote cargado en esta estacion ahora mismo.",
+      "product": "Producto",
+      "lot": "Lote",
+      "since": "Desde"
     },
     "lookupColumns": {
       "barcode": "Codigo de barras",
       "default_code": "Referencia",
       "code": "Codigo",
       "name": "Numero de serie"
+    }
+  },
+  "genealogy": {
+    "pageTitle": "Genealogia",
+    "subtitle": "Busca un codigo (lote o serie de Odoo) y consulta su recorrido.",
+    "infoHint": "Un mismo codigo puede ser a la vez el identificador de una unidad fabricada y un material consumido en otra estacion -- por ejemplo, un subensamblaje. Por eso se muestran los dos resultados posibles.",
+    "searchPlaceholder": "Buscar por codigo...",
+    "search": "Buscar",
+    "error": "No se pudo buscar ese codigo.",
+    "station": "Estacion",
+    "date": "Fecha",
+    "data": "Datos",
+    "asUnit": {
+      "title": "Recorrido como unidad fabricada",
+      "empty": "Este codigo no es el identificador de ninguna unidad fabricada."
+    },
+    "asMaterial": {
+      "title": "Usado como material en",
+      "empty": "Este codigo no se ha usado como material en ninguna estacion."
     }
   },
   "masterData": {
@@ -320,7 +415,8 @@
       "job_title": "Puesto",
       "department_id": "Departamento",
       "work_email": "Email",
-      "ref": "Referencia interna"
+      "ref": "Referencia interna",
+      "employeeCode": "Codigo de empleado"
     },
     "loading": "Cargando datos de Odoo...",
     "empty": "No hay datos para mostrar.",

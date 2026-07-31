@@ -1,7 +1,10 @@
 package com.manufactoo.stations;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.masterdata.MasterDataService;
 import com.manufactoo.odoo.connector.OdooMasterDataEntity;
+import com.manufactoo.routes.Route;
+import com.manufactoo.routes.RouteService;
 import com.manufactoo.stations.dto.DataSourceOption;
 import com.manufactoo.stations.dto.DataSourceTableDto;
 import org.springframework.http.HttpStatus;
@@ -9,9 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Resuelve un origen de datos ODOO_* a opciones {value,label} para un
@@ -24,16 +29,65 @@ import java.util.Optional;
 public class DataSourceResolver {
 
     private final MasterDataService masterDataService;
+    private final RouteService routeService;
+    private final Messages messages;
 
-    public DataSourceResolver(MasterDataService masterDataService) {
+    public DataSourceResolver(MasterDataService masterDataService, RouteService routeService, Messages messages) {
         this.masterDataService = masterDataService;
+        this.routeService = routeService;
+        this.messages = messages;
     }
 
     public List<DataSourceOption> resolve(DataSourceType type, int limit) {
+        return resolve(type, limit, null);
+    }
+
+    /**
+     * Igual que resolve(type, limit), pero si se pasa stationId y el tipo es
+     * ODOO_MANUFACTURING_ORDERS, limita las opciones a los productos de las
+     * rutas HABILITADAS que incluyen esa estacion (config.filterByStationRoute
+     * de un DROPDOWN, opcional -- ver StationBuilderPage.tsx). Si ninguna ruta
+     * cubre la estacion, o alguna de las que la cubren no fija producto
+     * ("cualquier producto"), no se filtra nada: fallar abierto (enseñar
+     * todas) es mejor que dejar al operario sin ninguna orden que elegir por
+     * una ruta a medio configurar.
+     */
+    public List<DataSourceOption> resolve(DataSourceType type, int limit, Long stationId) {
         OdooMasterDataEntity entity = odooEntity(type);
-        return masterDataService.list(entity, limit, 0).stream()
+        List<Map<String, Object>> rows = masterDataService.list(entity, limit, 0);
+        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
+            rows = filterByRouteProducts(rows, stationId);
+        }
+        return rows.stream()
                 .map(row -> new DataSourceOption(stringId(row.get("id")), label(row)))
                 .toList();
+    }
+
+    private List<Map<String, Object>> filterByRouteProducts(List<Map<String, Object>> rows, Long stationId) {
+        List<Route> routes = routeService.findEnabledRoutesForStation(stationId);
+        if (routes.isEmpty()) {
+            return rows;
+        }
+        Set<Long> allowedProductIds = new HashSet<>();
+        for (Route route : routes) {
+            if (route.getProductId() == null) {
+                return rows;
+            }
+            allowedProductIds.add(route.getProductId());
+        }
+        return rows.stream().filter(row -> allowedProductIds.contains(productIdOf(row))).toList();
+    }
+
+    /** El many2one de Odoo llega como [id, "etiqueta"]; a veces ya viene solo el id. */
+    private static Long productIdOf(Map<String, Object> row) {
+        Object value = row.get("product_id");
+        if (value instanceof List<?> pair && !pair.isEmpty() && pair.get(0) instanceof Number n) {
+            return n.longValue();
+        }
+        if (value instanceof Number n) {
+            return n.longValue();
+        }
+        return null;
     }
 
     /**
@@ -44,16 +98,31 @@ public class DataSourceResolver {
      */
     public DataSourceTableDto resolveTable(DataSourceType type, int limit) {
         OdooMasterDataEntity entity = odooEntity(type);
-        List<DataSourceTableDto.Column> columns = switch (type) {
-            case ODOO_PRODUCTS -> columnsOf("display_name", "default_code", "qty_available", "uom_id");
-            case ODOO_MANUFACTURING_ORDERS -> columnsOf("display_name", "product_qty", "state", "date_start");
-            case ODOO_OPERATORS -> columnsOf("name", "job_title", "department_id", "work_email");
-            case ODOO_BOMS -> columnsOf("display_name", "product_qty", "code", "type");
-            case ODOO_SERIALS -> columnsOf("name", "product_id", "ref");
-            case STATIC_LIST -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Una lista estatica no tiene tabla: define sus opciones en el propio widget.");
-        };
+        List<DataSourceTableDto.Column> columns = displayColumnsFor(type).stream()
+                .map(DataSourceTableDto.Column::of)
+                .toList();
         return new DataSourceTableDto(columns, masterDataService.list(entity, limit, 0));
+    }
+
+    /**
+     * Columnas de Odoo disponibles para mostrar de un dato maestro (tabla, y
+     * el detalle opcional de un TEXT_INPUT validado -- ver detailColumns en
+     * ScreenWidget.config). Mismo conjunto que ya se mostraba en el widget
+     * TABLE; aqui se reutiliza para que el diseñador elija cuales enseñar.
+     */
+    private static final Map<DataSourceType, List<String>> DISPLAY_COLUMNS = new EnumMap<>(DataSourceType.class);
+
+    static {
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_PRODUCTS, List.of("display_name", "default_code", "qty_available", "uom_id"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_MANUFACTURING_ORDERS, List.of("display_name", "product_qty", "state", "date_start"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_OPERATORS, List.of("name", "job_title", "department_id", "work_email"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_BOMS, List.of("display_name", "product_qty", "code", "type"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_SERIALS, List.of("name", "product_id", "ref"));
+        DISPLAY_COLUMNS.put(DataSourceType.STATIC_LIST, List.of());
+    }
+
+    public static List<String> displayColumnsFor(DataSourceType type) {
+        return DISPLAY_COLUMNS.getOrDefault(type, List.of());
     }
 
     /**
@@ -89,9 +158,48 @@ public class DataSourceResolver {
      * de duplicar la llamada RPC.
      */
     public Optional<DataSourceOption> lookup(DataSourceType type, String column, String code) {
+        return findRow(type, column, code).map(row -> new DataSourceOption(stringId(row.get("id")), label(row)));
+    }
+
+    /**
+     * Igual que lookup(), pero devuelve la fila completa en vez de solo
+     * {value,label}: la usa el widget TEXT_INPUT cuando el diseñador ha
+     * elegido varios "datos a mostrar" (p. ej. nombre y departamento del
+     * operario), no solo un unico texto resuelto.
+     */
+    public Optional<Map<String, Object>> lookupRow(DataSourceType type, String column, String code) {
+        return findRow(type, column, code);
+    }
+
+    /**
+     * Resuelve un codigo de serie/lote (stock.lot) contra Odoo: la usa
+     * MaterialLoadService, que ya no deja elegir origen de datos -- la carga
+     * de material siempre se valida contra series/lotes. Devuelve tambien el
+     * nombre del producto asociado (stock.lot.product_id), que se usa como
+     * nombre automatico de una ranura suelta (ver conversacion 2026-07-30),
+     * sin tener que resolver el codigo dos veces.
+     */
+    public Optional<SerialLookupResult> lookupSerial(String code) {
+        return findRow(DataSourceType.ODOO_SERIALS, "name", code)
+                .map(row -> new SerialLookupResult(stringId(row.get("id")), label(row), productLabel(row)));
+    }
+
+    public record SerialLookupResult(String value, String label, String productName) {
+    }
+
+    /** El many2one de Odoo llega como [id, "etiqueta"]; a veces ya viene solo el id. */
+    private static String productLabel(Map<String, Object> row) {
+        Object value = row.get("product_id");
+        if (value instanceof List<?> pair && pair.size() > 1) {
+            return String.valueOf(pair.get(1));
+        }
+        return null;
+    }
+
+    private Optional<Map<String, Object>> findRow(DataSourceType type, String column, String code) {
         if (!lookupColumnsFor(type).contains(column)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La columna " + column + " no es una columna de busqueda valida para " + type + ".");
+                    messages.get("dataSource.invalidLookupColumn", column, type));
         }
         String needle = code == null ? "" : code.trim();
         if (needle.isBlank()) {
@@ -103,8 +211,25 @@ public class DataSourceResolver {
                     Object value = row.get(column);
                     return value != null && value.toString().trim().equalsIgnoreCase(needle);
                 })
+                .findFirst();
+    }
+
+    /**
+     * Resuelve un id ya guardado (p. ej. el valor que guarda de forma nativa
+     * un DROPDOWN) a su etiqueta legible en Odoo. La usa StationService al
+     * guardar un envio, para dejar en paralelo un valor apto para mostrar en
+     * listados de registros/genealogia (bindingKey + "__label") sin que cada
+     * pantalla que los lea tenga que volver a resolverlo contra Odoo.
+     */
+    public Optional<String> resolveLabel(DataSourceType type, String id) {
+        if (type == DataSourceType.STATIC_LIST || id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        OdooMasterDataEntity entity = odooEntity(type);
+        return masterDataService.list(entity, 500, 0).stream()
+                .filter(row -> id.equals(stringId(row.get("id"))))
                 .findFirst()
-                .map(row -> new DataSourceOption(stringId(row.get("id")), label(row)));
+                .map(DataSourceResolver::label);
     }
 
     private OdooMasterDataEntity odooEntity(DataSourceType type) {
@@ -115,12 +240,8 @@ public class DataSourceResolver {
             case ODOO_OPERATORS -> OdooMasterDataEntity.OPERATOR;
             case ODOO_SERIALS -> OdooMasterDataEntity.SERIAL;
             case STATIC_LIST -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Una lista estatica no se resuelve en el servidor: sus opciones se definen en el propio widget.");
+                    messages.get("dataSource.staticListNotResolvable"));
         };
-    }
-
-    private static List<DataSourceTableDto.Column> columnsOf(String... keys) {
-        return java.util.Arrays.stream(keys).map(DataSourceTableDto.Column::of).toList();
     }
 
     private static String stringId(Object id) {

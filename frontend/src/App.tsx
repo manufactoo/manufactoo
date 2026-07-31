@@ -13,6 +13,8 @@ import { StationsPage } from "@/features/stations/StationsPage";
 import { StationBuilderPage } from "@/features/stations/StationBuilderPage";
 import { StationRuntimePage } from "@/features/stations/StationRuntimePage";
 import { StationRecordsPage } from "@/features/stations/StationRecordsPage";
+import { StationMaterialsPage } from "@/features/stations/StationMaterialsPage";
+import { GenealogyPage } from "@/features/stations/GenealogyPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { ProfilePage } from "@/features/profile/ProfilePage";
 
@@ -41,6 +43,8 @@ export default function App() {
             <Route path="stations/:id/builder" element={<StationBuilderPage />} />
             <Route path="stations/:id/run" element={<StationRuntimePage />} />
             <Route path="stations/:id/records" element={<StationRecordsPage />} />
+            <Route path="stations/:id/materials" element={<StationMaterialsPage />} />
+            <Route path="genealogy" element={<GenealogyPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>

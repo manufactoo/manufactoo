@@ -8,6 +8,7 @@ import java.util.Map;
 public record WidgetCatalogDto(
         List<WidgetCatalog.WidgetDescriptor> widgets,
         List<String> dataSources,
-        Map<String, List<String>> lookupColumns
+        Map<String, List<String>> lookupColumns,
+        Map<String, List<String>> displayColumns
 ) {
 }

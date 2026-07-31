@@ -2,12 +2,14 @@ package com.manufactoo.routes;
 
 import com.manufactoo.apps.AppService;
 import com.manufactoo.apps.TraceabilityGenealogyApp;
+import com.manufactoo.common.Messages;
 import com.manufactoo.routes.dto.RouteDto;
 import com.manufactoo.routes.dto.RouteStepDto;
 import com.manufactoo.routes.dto.UpsertRouteRequest;
 import com.manufactoo.routes.dto.UpsertRouteRequest.UpsertStep;
 import com.manufactoo.stations.Station;
 import com.manufactoo.stations.StationRepository;
+import com.manufactoo.stations.StationService;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,13 @@ public class RouteService {
     private final RouteRepository repository;
     private final StationRepository stationRepository;
     private final AppService appService;
+    private final Messages messages;
 
-    public RouteService(RouteRepository repository, StationRepository stationRepository, AppService appService) {
+    public RouteService(RouteRepository repository, StationRepository stationRepository, AppService appService, Messages messages) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.appService = appService;
+        this.messages = messages;
     }
 
     @Transactional
@@ -62,7 +66,7 @@ public class RouteService {
     public void delete(Long id) {
         requireAppInstalled();
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ruta no encontrada.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("route.notFound"));
         }
         repository.deleteById(id);
     }
@@ -75,9 +79,15 @@ public class RouteService {
                 .toList();
     }
 
+    private static boolean stationCapturesIdentifier(Station station, String identifierBindingKey) {
+        return station.getScreens().stream()
+                .flatMap(sc -> sc.getWidgets().stream())
+                .anyMatch(w -> identifierBindingKey.equals(w.getBindingKey()) && StationService.capturesData(w));
+    }
+
     private Route find(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ruta no encontrada."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("route.notFound")));
     }
 
     private void applyRequest(Route route, UpsertRouteRequest request) {
@@ -90,7 +100,7 @@ public class RouteService {
 
         List<UpsertStep> incoming = request.steps() != null ? request.steps() : List.of();
         if (incoming.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Una ruta necesita al menos un paso.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("route.needsAtLeastOneStep"));
         }
 
         Map<Long, Station> stations = stationRepository.findAllById(
@@ -105,7 +115,20 @@ public class RouteService {
         for (UpsertStep si : incoming) {
             Station station = stations.get(si.stationId());
             if (station == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estacion " + si.stationId() + " no encontrada.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("route.step.stationNotFound", si.stationId()));
+            }
+            // Si la estacion no captura el identificador de la ruta en ningun
+            // widget, la ruta nunca se aplicaria de verdad al llegar aqui
+            // (StationService.validateRouteSequence la salta en silencio cuando
+            // el envio no trae esa clave) -- mejor fallar aqui, al guardar, con
+            // un mensaje claro, que descubrirlo en produccion. Solo se exige si
+            // la ruta se guarda HABILITADA: una ruta deshabilitada no tiene
+            // ningun efecto en tiempo de ejecucion (ver findEnabledRoutesForStation),
+            // asi que debe poder guardarse a medio configurar mientras se arregla
+            // sin bloquear el propio guardado que la arreglaria.
+            if (route.isEnabled() && !stationCapturesIdentifier(station, route.getIdentifierBindingKey())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        messages.get("route.step.identifierNotCaptured", station.getName(), route.getIdentifierBindingKey()));
             }
             RouteStep step = new RouteStep();
             step.setStationId(si.stationId());
@@ -128,7 +151,7 @@ public class RouteService {
     private void requireAppInstalled() {
         if (!appService.isInstalled(TraceabilityGenealogyApp.KEY)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Instala la app Trazabilidad y genealogia para gestionar rutas.");
+                    messages.get("route.appNotInstalled"));
         }
     }
 }

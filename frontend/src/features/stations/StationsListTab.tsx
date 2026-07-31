@@ -79,7 +79,36 @@ export function StationsListTab() {
           screens: editing.screens,
         });
       } else {
-        await apiClient.post("/api/stations", { name, description, enabled, screens: [] });
+        // Una estacion nueva necesita al menos un widget finalizador para
+        // poder guardarse (ver StationService.validate) -- se arranca con un
+        // boton "Finalizar" ya listo para eso, en vez de una pantalla vacia
+        // que el backend rechazaria de inmediato. El diseñador puede
+        // borrarlo/reconfigurarlo libremente en el Builder.
+        await apiClient.post("/api/stations", {
+          name,
+          description,
+          enabled,
+          screens: [
+            {
+              title: t("stations.builder.screenN", { n: 1 }),
+              orderIndex: 0,
+              widgets: [
+                {
+                  widgetType: "BUTTON",
+                  label: "button",
+                  bindingKey: null,
+                  required: false,
+                  sourceDeviceId: null,
+                  sourceEventId: null,
+                  config: { text: t("stations.runtime.defaultFinishText"), action: "SUBMIT" },
+                  dataSource: {},
+                  layout: { x: 0, y: 0, w: 3, h: 1.5 },
+                  orderIndex: 0,
+                },
+              ],
+            },
+          ],
+        });
       }
       setDialogOpen(false);
       load();
@@ -139,6 +168,9 @@ export function StationsListTab() {
                         </Button>
                         <Button asChild variant="outline" size="sm">
                           <Link to={`/dashboard/stations/${station.id}/records`}>{t("stations.records.link")}</Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to={`/dashboard/stations/${station.id}/materials`}>{t("stations.materials.link")}</Link>
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => openEdit(station)}>
                           {t("common:actions.edit")}

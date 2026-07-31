@@ -1,5 +1,6 @@
 package com.manufactoo.odoo;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.odoo.connector.*;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class OdooConnectionService {
 
     private final OdooConnectorFactory connectorFactory;
+    private final Messages messages;
 
-    public OdooConnectionService(OdooConnectorFactory connectorFactory) {
+    public OdooConnectionService(OdooConnectorFactory connectorFactory, Messages messages) {
         this.connectorFactory = connectorFactory;
+        this.messages = messages;
     }
 
     public OdooConnectionTestResult testConnection(String host, int port, String database,
@@ -25,15 +28,16 @@ public class OdooConnectionService {
                 Integer uid = connector.authenticate(database, username, apiKeyOrPassword);
                 if (uid == null) {
                     return OdooConnectionTestResult.failure(connector.version().serverSerie(),
-                            "Credenciales invalidas: revisa base de datos, usuario y API key/contrasena.");
+                            messages.get("odoo.invalidCredentials"));
                 }
                 return OdooConnectionTestResult.success(connector.version().serverSerie(), uid);
             } catch (OdooJsonRpcException e) {
                 return OdooConnectionTestResult.failure(connector.version().serverSerie(),
-                        "Error autenticando en Odoo: " + e.getMessage());
+                        messages.get("odoo.authError", e.getMessage()));
             }
         } catch (OdooUnsupportedVersionException e) {
-            return OdooConnectionTestResult.failure(e.getDetectedVersion(), e.getMessage());
+            return OdooConnectionTestResult.failure(e.getDetectedVersion(),
+                    messages.get("odoo.unsupportedVersion", e.getDetectedVersion()));
         } catch (OdooJsonRpcException e) {
             return OdooConnectionTestResult.failure(null, e.getMessage() + dockerLocalhostHint(host));
         }
@@ -49,9 +53,7 @@ public class OdooConnectionService {
      */
     private String dockerLocalhostHint(String host) {
         if ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host)) {
-            return " Si Odoo esta instalado en tu propio equipo (no en un contenedor de esta misma red Docker), "
-                    + "usa 'host.docker.internal' en vez de 'localhost': dentro del contenedor de Manufactoo, "
-                    + "'localhost' se refiere al propio contenedor, no a tu maquina.";
+            return " " + messages.get("odoo.dockerLocalhostHint");
         }
         return "";
     }

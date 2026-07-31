@@ -1,5 +1,6 @@
 package com.manufactoo.user;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.user.dto.UpdatePreferencesRequest;
 import com.manufactoo.user.dto.UpdateProfileRequest;
 import com.manufactoo.user.dto.UserDto;
@@ -27,10 +28,12 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Messages messages;
 
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, Messages messages) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.messages = messages;
     }
 
     @GetMapping
@@ -41,7 +44,7 @@ public class UserController {
     @PutMapping
     public UserDto update(@AuthenticationPrincipal User user, @Valid @RequestBody UpdateProfileRequest request) {
         if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ese email ya esta en uso.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, messages.get("user.emailInUse"));
         }
 
         user.setName(request.name());
@@ -49,10 +52,10 @@ public class UserController {
 
         if (request.newPassword() != null && !request.newPassword().isBlank()) {
             if (request.currentPassword() == null || !passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contrasena actual no es correcta.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("user.wrongCurrentPassword"));
             }
             if (request.newPassword().length() < 8) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La nueva contrasena debe tener al menos 8 caracteres.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("user.newPasswordTooShort"));
             }
             user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         }
@@ -73,14 +76,14 @@ public class UserController {
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UserDto uploadAvatar(@AuthenticationPrincipal User user, @RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El fichero esta vacio.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("user.avatar.empty"));
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato no soportado. Usa PNG, JPEG o WEBP.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("user.avatar.unsupportedFormat"));
         }
         if (file.getSize() > MAX_AVATAR_BYTES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen no puede superar 2 MB.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, messages.get("user.avatar.tooLarge"));
         }
 
         user.setAvatarImage(file.getBytes());

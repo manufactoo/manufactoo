@@ -272,6 +272,84 @@ lector en emulación de teclado simplemente escribe en el campo con foco):
 Verificado de extremo a extremo contra Odoo real: escanear `0001` resuelve a
 "Alejandro Rioja" en pantalla, y el registro de genealogía guarda `{"operario": "2"}`.
 
+### Texto validado a mano contra Odoo (ya implementado)
+
+El caso anterior asume un lector (dispositivo/evento). Pero muchas estaciones no
+tienen lector: el operario teclea el código de operario, serie o referencia
+directamente en un campo **Texto** (`TEXT_INPUT`). Ese código también debe ser
+válido en Odoo — sin necesitar un dispositivo asociado.
+
+A diferencia de DROPDOWN/TABLE, en `TEXT_INPUT` el origen de datos es
+**opcional**: sin él, sigue siendo un texto libre normal (compatible con todas
+las estaciones ya diseñadas). Si el diseñador elige un origen Odoo y una
+columna de coincidencia (mismo selector que en DROPDOWN, aquí sin exigir un
+dispositivo/evento):
+
+- **Qué dato se teclea**: la "columna de coincidencia" (p. ej. `barcode` para
+  operarios/productos). Solo se ofrecen las columnas que tienen sentido como
+  código (mismo `LOOKUP_COLUMNS` que ya usaba DROPDOWN).
+- **Runtime**: cada vez que cambia el valor tecleado (con un pequeño debounce),
+  se resuelve contra `data-source-lookup-row` (todas las columnas del registro,
+  no solo una) y, si no hay coincidencia, se avisa "código no válido en Odoo"
+  justo debajo del campo. A diferencia de DROPDOWN, aquí el valor guardado
+  **es el código tecleado**, no un id resuelto. El propio `TEXT_INPUT` ya NO
+  enseña ningún dato del registro encontrado (nombre, departamento...) — ver
+  "Widgets mínimos y Etiquetas vinculadas" más abajo para eso.
+- **Backend**: `StationService.validateDataSourceLookups()` revalida el
+  código de coincidencia al enviar el registro (nunca confía solo en la
+  validación del cliente), reutilizando el mismo `DataSourceResolver.lookup()`
+  que ya usa DROPDOWN. Si Odoo no responde, el envío falla (502) en vez de
+  aceptar un código sin validar.
+
+### Widgets mínimos y Etiquetas vinculadas (ya implementado)
+
+Cada widget de datos (`DROPDOWN`, `TEXT_INPUT`, `NUMBER_INPUT`) se reduce a su
+expresión mínima: **solo el control**, sin ninguna etiqueta ni dato de detalle
+incrustado. Si el diseñador quiere un título encima o un dato resuelto de Odoo
+debajo, añade un widget **Etiqueta** (`LABEL`) suelto y lo coloca donde quiera
+— la misma libertad de layout que ya tenía cualquier otro widget. Esto sustituye
+al antiguo `config.detailColumns` (una lista de columnas fija dentro del propio
+`TEXT_INPUT`): ahora cualquier Etiqueta, en cualquier sitio de la estación,
+puede mostrar cualquier dato de cualquier widget que capture datos.
+
+Una Etiqueta tiene dos modos, elegidos en Propiedades:
+
+- **Texto fijo** (el de siempre): se teclea directamente encima del propio
+  widget en el lienzo.
+- **Vinculada a otro widget** (`config.boundTo` = el `bindingKey` del widget
+  origen, `config.boundField` = qué dato suyo mostrar): en vez de un texto fijo,
+  se calcula en vivo. `boundField` puede ser `_value` (el valor crudo
+  introducido/seleccionado, vale para cualquier widget) o, si el origen trae
+  datos de Odoo, una de sus columnas resueltas:
+  - **`TEXT_INPUT` validado**: cualquier columna del registro encontrado por
+    el código tecleado (antes limitado a las que el propio campo eligiera).
+  - **`DROPDOWN`**: cualquier columna del registro seleccionado (no solo la
+    etiqueta ya visible en el desplegable).
+  - **`TABLE` con selección única**: cualquier columna de la fila marcada.
+
+En el editor, una Etiqueta vinculada muestra un valor de ejemplo (mismo sitio,
+mismo tamaño) porque en diseño no hay ningún dato real todavía — el mismo
+principio WYSIWYG que ya usaba el resto de widgets. En el runtime,
+`StationRuntimePage` calcula un mapa `resolvedRows` (por `bindingKey` → sus
+datos disponibles) a partir de: el valor crudo de cada campo, las tablas
+completas de cada `DROPDOWN`/`TABLE` (`GET /api/stations/data-source-table`,
+cacheada por tipo en `dataSourceTableCache.ts` para no duplicar peticiones con
+el propio widget TABLE), y la fila que cada `TEXT_INPUT` validado reporta al
+resolver un código (`onResolvedRow`). Cada `WidgetView` de tipo `LABEL`
+simplemente lee de ese mapa — no resuelve nada por su cuenta.
+
+Backend: `WidgetCatalog` ya no exige texto en una Etiqueta (`text` es
+opcional); `StationService.validate()` exige que tenga texto fijo **o**
+`boundTo`, y que `boundTo` apunte a un `bindingKey` que exista de verdad en la
+estación (evita vinculaciones colgadas tras borrar/renombrar el widget origen).
+
+> **Nota de migración**: las estaciones creadas antes de este cambio que
+> tenían un `TEXT_INPUT`/`DROPDOWN`/`NUMBER_INPUT` con etiqueta visible dejan
+> de mostrarla (el campo `label` del widget sigue existiendo — se usa en
+> mensajes de validación y en el selector "Vincular a" — pero ya no se pinta
+> encima del control). Hay que añadir un widget Etiqueta manualmente donde se
+> quiera recuperar ese título.
+
 ---
 
 ## 7. Botones y triggers (modelo Tulip)

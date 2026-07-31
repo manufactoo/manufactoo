@@ -2,6 +2,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { IconArrowLeft } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,10 +22,18 @@ export function StationRecordsPage() {
     apiClient.get<TraceRecord[]>(`/api/stations/${id}/records`).then(({ data }) => setRecords(data)).catch(() => setRecords([]));
   }, [id]);
 
-  // Columnas = union de todas las claves capturadas en los registros.
+  // Columnas = union de todas las claves capturadas en los registros. Las
+  // claves "*__label" no son columnas propias: son la version legible en
+  // paralelo de un valor con origen de datos (p. ej. "Serial__label" junto a
+  // "Serial") que se usa para mostrar la celda, nunca para su propia columna.
+  const LABEL_SUFFIX = "__label";
   const keys = React.useMemo(() => {
     const set = new Set<string>();
-    (records ?? []).forEach((r) => Object.keys(r.capturedData).forEach((k) => set.add(k)));
+    (records ?? []).forEach((r) =>
+      Object.keys(r.capturedData)
+        .filter((k) => !k.endsWith(LABEL_SUFFIX))
+        .forEach((k) => set.add(k)),
+    );
     return [...set];
   }, [records]);
 
@@ -53,6 +62,7 @@ export function StationRecordsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("stations.records.date")}</TableHead>
+                    <TableHead>{t("stations.records.result")}</TableHead>
                     {keys.map((k) => (
                       <TableHead key={k}>{k}</TableHead>
                     ))}
@@ -64,8 +74,14 @@ export function StationRecordsPage() {
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {new Date(r.createdAt).toLocaleString(i18n.language)}
                       </TableCell>
+                      <TableCell>
+                        {r.result === "OK" && <Badge variant="success">{t("stations.records.resultOk")}</Badge>}
+                        {r.result === "NG" && <Badge variant="destructive">{t("stations.records.resultNg")}</Badge>}
+                      </TableCell>
                       {keys.map((k) => (
-                        <TableCell key={k}>{String(r.capturedData[k] ?? "")}</TableCell>
+                        <TableCell key={k}>
+                          {String(r.capturedData[k + LABEL_SUFFIX] ?? r.capturedData[k] ?? "")}
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))}

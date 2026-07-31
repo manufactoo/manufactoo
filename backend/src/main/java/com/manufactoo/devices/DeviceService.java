@@ -2,6 +2,7 @@ package com.manufactoo.devices;
 
 import com.manufactoo.apps.AppService;
 import com.manufactoo.apps.TraceabilityGenealogyApp;
+import com.manufactoo.common.Messages;
 import com.manufactoo.devices.dto.DeviceDto;
 import com.manufactoo.devices.dto.UpsertDeviceRequest;
 import org.springframework.http.HttpStatus;
@@ -16,10 +17,12 @@ public class DeviceService {
 
     private final DeviceRepository repository;
     private final AppService appService;
+    private final Messages messages;
 
-    public DeviceService(DeviceRepository repository, AppService appService) {
+    public DeviceService(DeviceRepository repository, AppService appService, Messages messages) {
         this.repository = repository;
         this.appService = appService;
+        this.messages = messages;
     }
 
     public List<DeviceDto> list() {
@@ -55,14 +58,14 @@ public class DeviceService {
     public void delete(Long id) {
         requireAppInstalled();
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dispositivo no encontrado.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("device.notFound"));
         }
         repository.deleteById(id);
     }
 
     private Device find(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dispositivo no encontrado."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("device.notFound")));
     }
 
     private void applyRequest(Device device, UpsertDeviceRequest request) {
@@ -78,25 +81,25 @@ public class DeviceService {
     private void validate(UpsertDeviceRequest request) {
         if (!DeviceCatalog.directionsFor(request.category()).contains(request.direction())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La categoria " + request.category() + " no admite direccion " + request.direction() + ".");
+                    messages.get("device.invalidDirection", request.category(), request.direction()));
         }
         if (!DeviceCatalog.transportsFor(request.category()).contains(request.transport())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La categoria " + request.category() + " no admite el transporte " + request.transport() + ".");
+                    messages.get("device.invalidTransport", request.category(), request.transport()));
         }
 
         List<String> missingConnection = missingRequiredFields(
                 DeviceCatalog.connectionFieldsFor(request.category(), request.transport()), request.connection());
         if (!missingConnection.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Faltan datos de conexion: " + String.join(", ", missingConnection));
+                    messages.get("device.missingConnectionFields", String.join(", ", missingConnection)));
         }
 
         List<String> missingSettings = missingRequiredFields(
                 DeviceCatalog.settingsFieldsFor(request.category()), request.settings());
         if (!missingSettings.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Faltan datos de configuracion: " + String.join(", ", missingSettings));
+                    messages.get("device.missingSettingsFields", String.join(", ", missingSettings)));
         }
     }
 
@@ -111,7 +114,7 @@ public class DeviceService {
     private void requireAppInstalled() {
         if (!appService.isInstalled(TraceabilityGenealogyApp.KEY)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Instala la app Trazabilidad y genealogia para gestionar dispositivos.");
+                    messages.get("device.appNotInstalled"));
         }
     }
 }

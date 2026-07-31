@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "electron": "^32.2.0",
+    "electron": "^43.2.0",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -62,7 +62,7 @@
     ]
   },
   "allowScripts": {
-    "electron@32.2.0": true,
+    "electron@43.2.0": true,
     "@serialport/bindings-cpp@12.0.1": true
   }
 }

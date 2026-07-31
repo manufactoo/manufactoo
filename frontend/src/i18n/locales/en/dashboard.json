@@ -186,12 +186,15 @@
       "screenTitle": "Screen title",
       "preview": "Operator preview",
       "screenN": "Screen {{n}}",
-      "addScreen": "Add screen"
+      "addScreen": "Add screen",
+      "positions": "Positions",
+      "positionsHint": "Physical positions of this station (e.g. R1, Feeder-A). Loading a material into a position that already had something replaces it -- without a position, the material is simply added.",
+      "positionPlaceholder": "e.g. R1",
+      "removePosition": "Remove position {{name}}"
     },
     "widget": {
-      "label": "Label",
       "bindingKey": "Data key",
-      "bindingKeyHint": "Name under which the value is stored in traceability (e.g. order, operator).",
+      "bindingKeyHint": "Name under which the value is stored in traceability, and shown in warnings and \"Link to\" (e.g. order, operator).",
       "required": "Required",
       "image": "Image",
       "source": "Input source",
@@ -204,11 +207,29 @@
       "chooseEvent": "Choose the event",
       "sourceDeviceHint": "Data from this device (e.g. a scanner) will fill this field.",
       "sourceEventHint": "The station waits for this topic and its value fills the field.",
+      "materialPosition": "Position",
+      "materialPositionHint": "If this reader feeds a specific physical position, every code it reads will replace whatever was there before. Without a position, each code is just added without replacing anything.",
+      "noPosition": "No position",
       "lookupColumn": "Match column",
       "chooseLookupColumn": "Choose the column",
       "lookupColumnHint": "The scanned code (e.g. a badge barcode) is looked up in this column; the matched record is saved and its name is shown.",
+      "lookupColumnHintManual": "The operator will type this data into the field (e.g. the employee code); it gets checked against Odoo.",
       "dataSource": "Data source",
       "chooseDataSource": "Choose the source",
+      "noDataSource": "None (free text)",
+      "labelColumns": "Display as",
+      "labelColumnsHint": "Which column(s) are shown in each dropdown option. With none chosen, the name is used. Choosing several combines them in the same order.",
+      "filterByStationRoute": "Only orders whose product has a route through this station",
+      "filterByStationRouteHint": "Looks at each order's product: if it has an enabled route that passes through this station, it's shown; otherwise it's hidden. If no route includes this station, or one doesn't set a product (applies to any), all orders are shown anyway.",
+      "textInputDataSourceHint": "Optional: first pick which Odoo master data the value comes from (e.g. Operators), then which data gets typed (e.g. employee code). To show a field from the matched record (name, department...) add a Label and link it to this field.",
+      "boundTo": "Link to",
+      "boundToHint": "This Label can show a live value from another widget on the station (the validated code in a text field, a dropdown or table selection...) instead of fixed text.",
+      "boundToNone": "None (fixed text)",
+      "boundField": "Show",
+      "boundFieldHint": "Which data of the linked widget to show: the raw value, or (if it comes from Odoo master data) one of its fields.",
+      "boundFieldValue": "The entered/selected value",
+      "detailPreviewValue": "Example",
+      "stationMaterialsPreview": "Informational only: list of lots/serials active in the station. Loaded from the Materials button.",
       "staticOptions": "Options (one per line: value|label)",
       "position": "Position and size",
       "x": "Column (X)",
@@ -224,7 +245,8 @@
       "LABEL": "Text label",
       "IMAGE": "Image",
       "TABLE": "Table",
-      "BUTTON": "Button"
+      "BUTTON": "Button",
+      "STATION_MATERIALS": "Station materials"
     },
     "dataSources": {
       "STATIC_LIST": "Static list",
@@ -244,7 +266,8 @@
       "action": "Action",
       "targetScreen": "Target screen (#)",
       "selectionMode": "Selection",
-      "valueColumn": "Stored value column"
+      "valueColumn": "Stored value column",
+      "result": "Result"
     },
     "fieldOptions": {
       "fit": {
@@ -255,7 +278,13 @@
         "NEXT": "Next screen",
         "PREV": "Previous screen",
         "GOTO": "Go to screen...",
-        "SUBMIT": "Finish and record"
+        "SUBMIT": "Finish and record",
+        "MATERIALS": "Open materials"
+      },
+      "result": {
+        "NONE": "No result",
+        "OK": "OK",
+        "NG": "NG"
       },
       "selectionMode": {
         "NONE": "Display only",
@@ -263,8 +292,36 @@
         "MULTI": "Multi select"
       }
     },
+    "style": {
+      "title": "Style",
+      "fontSize": "Text size",
+      "bold": "Bold",
+      "align": "Alignment",
+      "textColor": "Text color",
+      "backgroundColor": "Background color",
+      "show": "Show",
+      "sizes": {
+        "SM": "Small",
+        "MD": "Normal",
+        "LG": "Large",
+        "XL": "Extra large",
+        "XXL": "Huge"
+      },
+      "aligns": {
+        "LEFT": "Left",
+        "CENTER": "Center",
+        "RIGHT": "Right"
+      },
+      "parts": {
+        "text": "Text",
+        "value": "Value",
+        "header": "Header",
+        "cell": "Cells",
+        "image": "Image"
+      }
+    },
     "runtime": {
-      "submit": "Finish and record",
+      "defaultFinishText": "Finish and record",
       "submitted": "Record saved",
       "submitError": "Could not save the record.",
       "loadOptionsError": "Could not load data from Odoo.",
@@ -274,22 +331,60 @@
       "next": "Next",
       "emptyScreen": "This screen has no widgets yet.",
       "scanPlaceholder": "Scan or paste the code and press Enter",
-      "scanNotFound": "No record found with code \"{{code}}\".",
+      "scanNotFound": "{{field}}: no record found with code \"{{code}}\".",
+      "invalidCode": "{{field}}: code \"{{code}}\" is not valid in Odoo.",
       "viaPlayer": "Connected via Player",
-      "browserOnly": "Browser only: fill in by hand"
+      "browserOnly": "Browser only: fill in by hand",
+      "loadedAt": "Loaded: {{date}}",
+      "materialsTitle": "Materials",
+      "materialsEmpty": "No lot/serial loaded in this station right now.",
+      "invalidMaterialCode": "Code \"{{code}}\" is not valid in Odoo.",
+      "addMaterial": "Add",
+      "unload": "Remove"
     },
     "records": {
-      "title": "Genealogy",
+      "title": "Records",
       "link": "Records",
       "back": "Back",
       "empty": "No records yet.",
-      "date": "Date"
+      "date": "Date",
+      "result": "Result",
+      "resultOk": "OK",
+      "resultNg": "NG"
+    },
+    "materials": {
+      "title": "Materials",
+      "link": "Materials",
+      "back": "Back",
+      "empty": "No lot is loaded in this station right now.",
+      "product": "Product",
+      "lot": "Lot",
+      "since": "Since"
     },
     "lookupColumns": {
       "barcode": "Barcode",
       "default_code": "Reference",
       "code": "Code",
       "name": "Serial number"
+    }
+  },
+  "genealogy": {
+    "pageTitle": "Genealogy",
+    "subtitle": "Search a code (Odoo lot or serial) and see its journey.",
+    "infoHint": "The same code can be both the identifier of a manufactured unit and a material consumed at another station -- for example, a sub-assembly. That's why both results are shown.",
+    "searchPlaceholder": "Search by code...",
+    "search": "Search",
+    "error": "Could not search for that code.",
+    "station": "Station",
+    "date": "Date",
+    "data": "Data",
+    "asUnit": {
+      "title": "Journey as a manufactured unit",
+      "empty": "This code is not the identifier of any manufactured unit."
+    },
+    "asMaterial": {
+      "title": "Used as material in",
+      "empty": "This code has not been used as material at any station."
     }
   },
   "masterData": {
@@ -320,7 +415,8 @@
       "job_title": "Job title",
       "department_id": "Department",
       "work_email": "Email",
-      "ref": "Internal reference"
+      "ref": "Internal reference",
+      "employeeCode": "Employee code"
     },
     "loading": "Loading data from Odoo...",
     "empty": "Nothing to show.",

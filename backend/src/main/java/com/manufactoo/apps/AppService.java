@@ -1,6 +1,7 @@
 package com.manufactoo.apps;
 
 import com.manufactoo.apps.dto.AppDto;
+import com.manufactoo.common.Messages;
 import jakarta.annotation.PostConstruct;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,12 @@ public class AppService {
 
     private final AppRegistry registry;
     private final AppRegistrationRepository repository;
+    private final Messages messages;
 
-    public AppService(AppRegistry registry, AppRegistrationRepository repository) {
+    public AppService(AppRegistry registry, AppRegistrationRepository repository, Messages messages) {
         this.registry = registry;
         this.repository = repository;
+        this.messages = messages;
     }
 
     /** Da de alta en BBDD (como NOT_INSTALLED) cualquier app registrada en codigo que aun no tenga fila. */
@@ -48,12 +51,12 @@ public class AppService {
 
     public AppDto install(String key) {
         ManufactooApp app = registry.find(key)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "App no encontrada: " + key));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("app.notFound", key)));
 
         List<String> missing = app.dependsOn().stream().filter(dep -> !isInstalled(dep)).toList();
         if (!missing.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Esta app requiere instalar antes: " + String.join(", ", missing));
+                    messages.get("app.dependenciesMissing", String.join(", ", missing)));
         }
 
         AppRegistration registration = repository.findById(key).orElseGet(() -> new AppRegistration(key));
@@ -66,7 +69,7 @@ public class AppService {
 
     public AppDto uninstall(String key) {
         ManufactooApp app = registry.find(key)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "App no encontrada: " + key));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("app.notFound", key)));
 
         List<String> blockedBy = registry.dependents(key).stream()
                 .map(ManufactooApp::key)
@@ -74,7 +77,7 @@ public class AppService {
                 .toList();
         if (!blockedBy.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "No puedes desinstalar esta app porque otras dependen de ella: " + String.join(", ", blockedBy));
+                    messages.get("app.blockedByDependents", String.join(", ", blockedBy)));
         }
 
         AppRegistration registration = repository.findById(key).orElseGet(() -> new AppRegistration(key));

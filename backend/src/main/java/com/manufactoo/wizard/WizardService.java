@@ -1,5 +1,6 @@
 package com.manufactoo.wizard;
 
+import com.manufactoo.common.Messages;
 import com.manufactoo.company.CompanySettings;
 import com.manufactoo.company.CompanySettingsRepository;
 import com.manufactoo.company.dto.CompanySettingsDto;
@@ -41,6 +42,7 @@ public class WizardService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final WizardProperties wizardProperties;
+    private final Messages messages;
 
     public WizardService(InstallationWizardStateRepository wizardStateRepository,
                            UserRepository userRepository,
@@ -50,7 +52,8 @@ public class WizardService {
                            CryptoService cryptoService,
                            PasswordEncoder passwordEncoder,
                            JwtService jwtService,
-                           WizardProperties wizardProperties) {
+                           WizardProperties wizardProperties,
+                           Messages messages) {
         this.wizardStateRepository = wizardStateRepository;
         this.userRepository = userRepository;
         this.companySettingsRepository = companySettingsRepository;
@@ -60,6 +63,7 @@ public class WizardService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.wizardProperties = wizardProperties;
+        this.messages = messages;
     }
 
     public WizardStateResponse getState() {
@@ -120,14 +124,14 @@ public class WizardService {
 
         if (!test.success()) {
             throw new WizardValidationException(
-                    test.errorMessage() != null ? test.errorMessage() : "No se pudo validar la conexion a Odoo.");
+                    test.errorMessage() != null ? test.errorMessage() : messages.get("wizard.odooValidationFailed"));
         }
 
         String detectedMajor = test.odooVersion() == null ? "" : test.odooVersion().replace(".0", "");
         String expectedMajor = String.valueOf(request.odooVersion());
         if (!detectedMajor.equals(expectedMajor)) {
             throw new WizardValidationException(
-                    "Version detectada (" + test.odooVersion() + ") no coincide con la seleccionada (" + request.odooVersion() + "). Verifica tu instalacion de Odoo.");
+                    messages.get("wizard.odooVersionMismatch", test.odooVersion(), request.odooVersion()));
         }
 
         User admin = new User();

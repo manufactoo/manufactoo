@@ -14,7 +14,8 @@ public record UpsertStationRequest(
         @NotBlank String name,
         String description,
         boolean enabled,
-        List<UpsertScreen> screens
+        List<UpsertScreen> screens,
+        List<String> positions
 ) {
     public record UpsertScreen(
             Long id,

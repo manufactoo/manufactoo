@@ -21,19 +21,28 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final Messages messages;
+
+    public GlobalExceptionHandler(Messages messages) {
+        this.messages = messages;
+    }
+
     @ExceptionHandler(WizardAlreadyCompletedException.class)
     public ResponseEntity<Map<String, String>> handle(WizardAlreadyCompletedException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", messages.get("wizard.alreadyCompleted")));
     }
 
     @ExceptionHandler(WizardValidationException.class)
     public ResponseEntity<Map<String, String>> handle(WizardValidationException e) {
+        // El mensaje ya viene traducido desde WizardService (usa Messages alli, no aqui):
+        // esta excepcion es de las pocas que lleva un mensaje realmente dinamico,
+        // no una clave fija.
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of("error", e.getMessage()));
     }
 
     @ExceptionHandler(WizardResetNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handle(WizardResetNotAllowedException e) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", messages.get("wizard.resetNotAllowed")));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -46,7 +55,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> handle(MaxUploadSizeExceededException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "El fichero es demasiado grande."));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", messages.get("common.fileTooLarge")));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -59,6 +68,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handle(IllegalStateException e) {
         log.error("Error interno", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Error interno del servidor. Revisa los logs del backend."));
+                .body(Map.of("error", messages.get("common.internalError")));
     }
 }

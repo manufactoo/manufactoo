@@ -2,6 +2,7 @@ package com.manufactoo.events;
 
 import com.manufactoo.apps.AppService;
 import com.manufactoo.apps.TraceabilityGenealogyApp;
+import com.manufactoo.common.Messages;
 import com.manufactoo.events.dto.EventDto;
 import com.manufactoo.events.dto.UpsertEventRequest;
 import org.springframework.http.HttpStatus;
@@ -15,10 +16,12 @@ public class EventService {
 
     private final EventRepository repository;
     private final AppService appService;
+    private final Messages messages;
 
-    public EventService(EventRepository repository, AppService appService) {
+    public EventService(EventRepository repository, AppService appService, Messages messages) {
         this.repository = repository;
         this.appService = appService;
+        this.messages = messages;
     }
 
     public List<EventDto> list() {
@@ -50,14 +53,14 @@ public class EventService {
     public void delete(Long id) {
         requireAppInstalled();
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("event.notFound"));
         }
         repository.deleteById(id);
     }
 
     private Event find(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento no encontrado."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("event.notFound")));
     }
 
     private void applyRequest(Event event, UpsertEventRequest request) {
@@ -70,7 +73,7 @@ public class EventService {
     private void requireAppInstalled() {
         if (!appService.isInstalled(TraceabilityGenealogyApp.KEY)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Instala la app Trazabilidad y genealogia para gestionar eventos.");
+                    messages.get("event.appNotInstalled"));
         }
     }
 }
