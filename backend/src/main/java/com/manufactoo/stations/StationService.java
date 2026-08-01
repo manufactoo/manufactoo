@@ -79,6 +79,12 @@ public class StationService {
         return dataSourceResolver.resolveTable(type, limit);
     }
 
+    /** Igual, pero filtrando por las rutas de una estacion concreta (ver DataSourceResolver.resolveTable con stationId). */
+    public DataSourceTableDto resolveDataSourceTable(DataSourceType type, int limit, Long stationId) {
+        requireAppInstalled();
+        return dataSourceResolver.resolveTable(type, limit, stationId);
+    }
+
     /**
      * Resuelve un codigo en bruto (leido por un dispositivo o evento MQTT, p.
      * ej. el codigo de barras de la credencial de un operario) al registro
@@ -86,8 +92,13 @@ public class StationService {
      * se guarda en trazabilidad es el id de ese registro, no el codigo leido.
      */
     public DataSourceOption resolveLookup(DataSourceType type, String column, String code) {
+        return resolveLookup(type, column, code, null);
+    }
+
+    /** Igual, pero filtrando por las rutas de una estacion concreta (ver DataSourceResolver.lookup con stationId). */
+    public DataSourceOption resolveLookup(DataSourceType type, String column, String code, Long stationId) {
         requireAppInstalled();
-        return dataSourceResolver.lookup(type, column, code)
+        return dataSourceResolver.lookup(type, column, code, stationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         messages.get("station.dataSource.recordNotFound", column, code)));
     }
@@ -97,8 +108,13 @@ public class StationService {
      * fila encontrada (el "detalle" configurable de un TEXT_INPUT validado).
      */
     public Map<String, Object> resolveLookupRow(DataSourceType type, String column, String code, List<String> columns) {
+        return resolveLookupRow(type, column, code, columns, null);
+    }
+
+    /** Igual, pero filtrando por las rutas de una estacion concreta (ver DataSourceResolver.lookupRow con stationId). */
+    public Map<String, Object> resolveLookupRow(DataSourceType type, String column, String code, List<String> columns, Long stationId) {
         requireAppInstalled();
-        Map<String, Object> row = dataSourceResolver.lookupRow(type, column, code)
+        Map<String, Object> row = dataSourceResolver.lookupRow(type, column, code, stationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         messages.get("station.dataSource.recordNotFound", column, code)));
         Map<String, Object> filtered = new LinkedHashMap<>();

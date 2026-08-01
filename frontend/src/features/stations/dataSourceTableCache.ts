@@ -12,12 +12,21 @@ import type { DataSourceTable } from "./types";
  */
 const cache = new Map<string, Promise<DataSourceTable>>();
 
-export function fetchDataSourceTable(type: string, limit = 200): Promise<DataSourceTable> {
-  const key = `${type}:${limit}`;
+/**
+ * stationId opcional: si se pasa, filtra ordenes de fabricacion por las
+ * rutas de esa estacion (config.filterByStationRoute de un TABLE, ver
+ * WidgetView.tsx) -- clave de cache distinta (":route:<id>") para no
+ * compartirla con una peticion sin filtrar del mismo tipo/limite, igual
+ * criterio que optionsKeyFor en StationRuntimePage.tsx para el DROPDOWN.
+ */
+export function fetchDataSourceTable(type: string, limit = 200, stationId?: string | number): Promise<DataSourceTable> {
+  const key = stationId ? `${type}:${limit}:route:${stationId}` : `${type}:${limit}`;
   let pending = cache.get(key);
   if (!pending) {
     pending = apiClient
-      .get<DataSourceTable>("/api/stations/data-source-table", { params: { type, limit } })
+      .get<DataSourceTable>("/api/stations/data-source-table", {
+        params: stationId ? { type, limit, stationId } : { type, limit },
+      })
       .then(({ data }) => data);
     // Si la peticion falla, se quita de la cache para que el siguiente intento
     // (p. ej. otro widget del mismo tipo) pueda reintentarla en vez de quedar

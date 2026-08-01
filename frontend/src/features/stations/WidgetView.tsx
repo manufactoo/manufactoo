@@ -14,10 +14,20 @@ import { getBridge } from "./manufactoo-bridge";
 import { fetchDataSourceTable } from "./dataSourceTableCache";
 import type { DataSourceOption, DataSourceTable, MaterialLoad, Widget, WidgetStyle } from "./types";
 
-/** Resuelve un codigo en bruto contra Odoo, compartido por el escaneo manual y el automatico via Player. */
-async function resolveDataSourceOption(dataSourceType: string, lookupColumn: string, code: string): Promise<DataSourceOption> {
+/**
+ * Resuelve un codigo en bruto contra Odoo, compartido por el escaneo manual y
+ * el automatico via Player. stationId opcional: filtra ordenes de fabricacion
+ * por las rutas de esa estacion (config.filterByStationRoute) -- un codigo de
+ * una orden real pero fuera de ruta se trata como no encontrado.
+ */
+async function resolveDataSourceOption(
+  dataSourceType: string,
+  lookupColumn: string,
+  code: string,
+  stationId?: string | number,
+): Promise<DataSourceOption> {
   const { data } = await apiClient.get<DataSourceOption>("/api/stations/data-source-lookup", {
-    params: { type: dataSourceType, column: lookupColumn, code },
+    params: stationId ? { type: dataSourceType, column: lookupColumn, code, stationId } : { type: dataSourceType, column: lookupColumn, code },
   });
   return data;
 }
@@ -134,15 +144,18 @@ function backgroundStyle(style: WidgetStyle): React.CSSProperties {
   return style.backgroundColor ? { backgroundColor: style.backgroundColor } : {};
 }
 
-/** Igual que resolveDataSourceOption pero trae varios campos de la fila (detalle configurable de un TEXT_INPUT validado). */
+/** Igual que resolveDataSourceOption pero trae varios campos de la fila (detalle configurable de un TEXT_INPUT validado). stationId opcional: mismo filtro por rutas de ordenes. */
 async function resolveDataSourceRow(
   dataSourceType: string,
   lookupColumn: string,
   code: string,
   columns: string[],
+  stationId?: string | number,
 ): Promise<Record<string, unknown>> {
   const { data } = await apiClient.get<Record<string, unknown>>("/api/stations/data-source-lookup-row", {
-    params: { type: dataSourceType, column: lookupColumn, code, columns: columns.join(",") },
+    params: stationId
+      ? { type: dataSourceType, column: lookupColumn, code, columns: columns.join(","), stationId }
+      : { type: dataSourceType, column: lookupColumn, code, columns: columns.join(",") },
   });
   return data;
 }
@@ -214,6 +227,13 @@ export interface WidgetViewProps {
    * dispositivo/evento, vive en StationRuntimePage/MaterialsDialog.
    */
   materialLoads?: MaterialLoad[];
+  /**
+   * Id de la estacion actual: solo se usa para el filtro opcional por rutas
+   * (config.filterByStationRoute) de DROPDOWN/TABLE/TEXT_INPUT enlazados a
+   * ordenes de fabricacion -- ver conversacion 2026-08-01. Se calcula aqui
+   * si aplica (nunca se manda "por si acaso" para otros origenes de datos).
+   */
+  stationId?: string | number;
   interactive?: boolean;
 }
 
@@ -232,6 +252,7 @@ export function WidgetView({
   onResolvedRow,
   onError,
   materialLoads,
+  stationId,
   interactive = true,
 }: WidgetViewProps) {
   const { t } = useTranslation("dashboard");
@@ -281,7 +302,7 @@ export function WidgetView({
     return <div className="pointer-events-none h-full rounded-md border border-border" style={backgroundStyle(style)} />;
   }
   if (widget.widgetType === "TABLE") {
-    return <WidgetTable widget={widget} value={value} onChange={change} interactive={interactive} />;
+    return <WidgetTable widget={widget} value={value} onChange={change} interactive={interactive} stationId={stationId} />;
   }
   if (widget.widgetType === "BUTTON") {
     const style = partStyle(widget, "text");
@@ -348,6 +369,12 @@ export function WidgetView({
       widget.dataSource?.type === "STATIC_LIST" ? widget.dataSource.staticOptions ?? [] : options ?? [];
     const lookupColumn = widget.config.lookupColumn as string | undefined;
     const dsType = widget.dataSource?.type;
+    // Mismo filtro que ya aplica la lista de opciones (StationRuntimePage,
+    // optionsKeyFor) al escaneo/lectura por dispositivo -- antes solo la
+    // lista desplegable se filtraba por rutas, escanear un codigo de una
+    // orden fuera de ruta colaba igualmente (ver conversacion 2026-08-01).
+    const routeFilterStationId =
+      dsType === "ODOO_MANUFACTURING_ORDERS" && widget.config.filterByStationRoute === true ? stationId : undefined;
     // Cualquier forma de fijar el valor cuenta como "confirmarlo" -- seleccion
     // manual, escaneo (ScanResolver) o Player (BridgeWatcher) -- asi que las
     // tres pasan por aqui en vez de llamar a `change` directamente.
@@ -386,7 +413,7 @@ export function WidgetView({
                 sourceDeviceId={widget.sourceDeviceId}
                 sourceEventId={widget.sourceEventId}
                 onRaw={(raw) => {
-                  resolveDataSourceOption(dsType, lookupColumn, raw)
+                  resolveDataSourceOption(dsType, lookupColumn, raw, routeFilterStationId)
                     .then((opt) => {
                       onResolvedOption?.(dsType, opt);
                       confirmChange(opt.value);
@@ -400,6 +427,7 @@ export function WidgetView({
             <ScanResolver
               dataSourceType={dsType}
               lookupColumn={lookupColumn}
+              stationId={routeFilterStationId}
               disabled={!interactive}
               fieldName={widget.bindingKey ?? widget.widgetType}
               onError={(msg) => widget.bindingKey && onError?.(widget.bindingKey, msg)}
@@ -448,6 +476,7 @@ export function WidgetView({
           code={(value as string) ?? ""}
           interactive={interactive}
           fieldName={widget.bindingKey ?? widget.widgetType}
+          stationId={dsType === "ODOO_MANUFACTURING_ORDERS" && widget.config.filterByStationRoute === true ? stationId : undefined}
           onResolvedRow={(row) => widget.bindingKey && onResolvedRow?.(widget.bindingKey, row)}
           onError={(msg) => widget.bindingKey && onError?.(widget.bindingKey, msg)}
         />
@@ -561,6 +590,7 @@ function ValidationIndicator({
   code,
   interactive,
   fieldName,
+  stationId,
   onResolvedRow,
   onError,
 }: {
@@ -572,6 +602,8 @@ function ValidationIndicator({
   interactive: boolean;
   /** Identificador del widget (bindingKey) para nombrar el error en la zona fija comun. */
   fieldName: string;
+  /** Filtro por rutas de ordenes de fabricacion, ya decidido por el llamante (undefined si no aplica) -- ver WidgetView. */
+  stationId?: string | number;
   onResolvedRow: (row: Record<string, unknown> | null) => void;
   onError: (message: string | null) => void;
 }) {
@@ -591,8 +623,8 @@ function ValidationIndicator({
     }
     const timer = window.setTimeout(() => {
       const resolve = columns.length > 0
-        ? resolveDataSourceRow(dataSourceType, lookupColumn, trimmed, columns)
-        : resolveDataSourceOption(dataSourceType, lookupColumn, trimmed).then(() => ({}));
+        ? resolveDataSourceRow(dataSourceType, lookupColumn, trimmed, columns, stationId)
+        : resolveDataSourceOption(dataSourceType, lookupColumn, trimmed, stationId).then(() => ({}));
       resolve
         .then((row) => {
           onResolvedRowRef.current(row);
@@ -604,7 +636,7 @@ function ValidationIndicator({
         });
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [interactive, dataSourceType, lookupColumn, columns.join(","), code, fieldName, t]);
+  }, [interactive, dataSourceType, lookupColumn, columns.join(","), code, fieldName, stationId, t]);
 
   // Al desmontar (widget borrado o pantalla cambiada), limpia su error activo si tenia uno.
   React.useEffect(() => () => onErrorRef.current(null), []);
@@ -659,6 +691,7 @@ function ScanResolver({
   fieldName,
   onResolved,
   onError,
+  stationId,
 }: {
   dataSourceType: string;
   lookupColumn: string;
@@ -667,6 +700,8 @@ function ScanResolver({
   fieldName: string;
   onResolved: (option: DataSourceOption) => void;
   onError: (message: string | null) => void;
+  /** Filtro por rutas de ordenes de fabricacion, ya decidido por el llamante (undefined si no aplica). */
+  stationId?: string | number;
 }) {
   const { t } = useTranslation("dashboard");
   const [code, setCode] = React.useState("");
@@ -680,7 +715,7 @@ function ScanResolver({
     const trimmed = code.trim();
     if (!trimmed || disabled) return;
     try {
-      const data = await resolveDataSourceOption(dataSourceType, lookupColumn, trimmed);
+      const data = await resolveDataSourceOption(dataSourceType, lookupColumn, trimmed, stationId);
       onResolved(data);
       setCode("");
       onError(null);
@@ -749,11 +784,14 @@ function WidgetTable({
   value,
   onChange,
   interactive,
+  stationId,
 }: {
   widget: Widget;
   value: unknown;
   onChange: (value: unknown) => void;
   interactive: boolean;
+  /** Filtro por rutas de ordenes de fabricacion (solo aplica si config.filterByStationRoute esta activo). */
+  stationId?: string | number;
 }) {
   const { t } = useTranslation("dashboard");
   const [table, setTable] = React.useState<DataSourceTable | null>(null);
@@ -764,15 +802,17 @@ function WidgetTable({
   const selectable = selectionMode === "SINGLE" || selectionMode === "MULTI";
   const headerStyle = partStyle(widget, "header");
   const cellStyle = partStyle(widget, "cell");
+  const routeFilterStationId =
+    type === "ODOO_MANUFACTURING_ORDERS" && widget.config.filterByStationRoute === true ? stationId : undefined;
 
   React.useEffect(() => {
     if (!type || type === "STATIC_LIST") return;
     const maxRows = Number(widget.config.maxRows) || 50;
     setError(false);
-    fetchDataSourceTable(type, maxRows)
+    fetchDataSourceTable(type, maxRows, routeFilterStationId)
       .then(setTable)
       .catch(() => setError(true));
-  }, [type, widget.config.maxRows]);
+  }, [type, widget.config.maxRows, routeFilterStationId]);
 
   if (error) return <p className="text-xs text-destructive">{t("stations.runtime.loadOptionsError")}</p>;
   if (!table) return <p className="text-xs text-muted-foreground">{t("masterData.loading")}</p>;

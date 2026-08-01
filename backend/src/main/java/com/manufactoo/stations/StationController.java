@@ -56,23 +56,32 @@ public class StationController {
         return service.resolveDataSource(type, limit, stationId);
     }
 
-    /** Resuelve un origen de datos a filas + columnas (para el widget TABLE). */
+    /**
+     * Resuelve un origen de datos a filas + columnas (para el widget TABLE).
+     * stationId opcional: igual que en data-source-options, filtra ordenes
+     * por rutas de la estacion cuando el widget lo pide (config.filterByStationRoute).
+     */
     @GetMapping("/data-source-table")
     public DataSourceTableDto dataSourceTable(@RequestParam DataSourceType type,
-                                              @RequestParam(defaultValue = "50") int limit) {
-        return service.resolveDataSourceTable(type, limit);
+                                              @RequestParam(defaultValue = "50") int limit,
+                                              @RequestParam(required = false) Long stationId) {
+        return service.resolveDataSourceTable(type, limit, stationId);
     }
 
     /**
-     * Resuelve un codigo en bruto (escaneado por un dispositivo/evento) al
-     * registro Odoo real: {value,label} donde value es el id a guardar en
-     * trazabilidad y label el nombre a mostrar en pantalla.
+     * Resuelve un codigo en bruto (escaneado por un dispositivo/evento, o
+     * tecleado a mano) al registro Odoo real: {value,label} donde value es el
+     * id a guardar en trazabilidad y label el nombre a mostrar en pantalla.
+     * stationId opcional: igual que en data-source-options, un codigo de una
+     * orden cuyo producto no tiene ruta por esta estacion se trata como no
+     * encontrado (ver DataSourceResolver.findRow).
      */
     @GetMapping("/data-source-lookup")
     public DataSourceOption dataSourceLookup(@RequestParam DataSourceType type,
                                              @RequestParam String column,
-                                             @RequestParam String code) {
-        return service.resolveLookup(type, column, code);
+                                             @RequestParam String code,
+                                             @RequestParam(required = false) Long stationId) {
+        return service.resolveLookup(type, column, code, stationId);
     }
 
     /**
@@ -85,8 +94,9 @@ public class StationController {
     public Map<String, Object> dataSourceLookupRow(@RequestParam DataSourceType type,
                                                    @RequestParam String column,
                                                    @RequestParam String code,
-                                                   @RequestParam List<String> columns) {
-        return service.resolveLookupRow(type, column, code, columns);
+                                                   @RequestParam List<String> columns,
+                                                   @RequestParam(required = false) Long stationId) {
+        return service.resolveLookupRow(type, column, code, columns, stationId);
     }
 
     /** Sube una imagen para un widget IMAGE; devuelve su id. */

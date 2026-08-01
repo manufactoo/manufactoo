@@ -374,6 +374,7 @@ export function StationRuntimePage() {
                 >
                   <WidgetView
                     widget={widget}
+                    stationId={id}
                     value={widget.bindingKey ? values[widget.bindingKey] : undefined}
                     options={
                       widget.dataSource?.type

@@ -97,11 +97,20 @@ public class DataSourceResolver {
      * traducidas de masterData.columns.* del frontend.
      */
     public DataSourceTableDto resolveTable(DataSourceType type, int limit) {
+        return resolveTable(type, limit, null);
+    }
+
+    /** Igual que resolveTable(type, limit), pero filtrando por rutas de estacion como resolve() -- ver filterByRouteProducts. */
+    public DataSourceTableDto resolveTable(DataSourceType type, int limit, Long stationId) {
         OdooMasterDataEntity entity = odooEntity(type);
         List<DataSourceTableDto.Column> columns = displayColumnsFor(type).stream()
                 .map(DataSourceTableDto.Column::of)
                 .toList();
-        return new DataSourceTableDto(columns, masterDataService.list(entity, limit, 0));
+        List<Map<String, Object>> rows = masterDataService.list(entity, limit, 0);
+        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
+            rows = filterByRouteProducts(rows, stationId);
+        }
+        return new DataSourceTableDto(columns, rows);
     }
 
     /**
@@ -133,7 +142,11 @@ public class DataSourceResolver {
      * (se muestra el nombre, se guarda el id en trazabilidad). Solo se ofrecen
      * columnas que Odoo realmente expone para ese dato maestro (ver
      * AbstractOdooConnector.odooFields) y que tienen sentido como codigo de
-     * lectura (no aplica a ordenes de fabricacion, que no se escanean por codigo).
+     * lectura. "display_name" en ordenes de fabricacion es su referencia
+     * legible (p. ej. "WH/MO/00023") -- necesaria para que un TEXT_INPUT/
+     * DROPDOWN pueda validar/escanear una orden (antes vacio, no se podia).
+     * mrp.production no se pide con el campo "name" (ver odooFields), solo
+     * "display_name" -- usar "name" aqui dejaria la columna sin match nunca.
      */
     private static final Map<DataSourceType, List<String>> LOOKUP_COLUMNS = new EnumMap<>(DataSourceType.class);
 
@@ -142,7 +155,7 @@ public class DataSourceResolver {
         LOOKUP_COLUMNS.put(DataSourceType.ODOO_PRODUCTS, List.of("barcode", "default_code"));
         LOOKUP_COLUMNS.put(DataSourceType.ODOO_BOMS, List.of("code"));
         LOOKUP_COLUMNS.put(DataSourceType.ODOO_SERIALS, List.of("name"));
-        LOOKUP_COLUMNS.put(DataSourceType.ODOO_MANUFACTURING_ORDERS, List.of());
+        LOOKUP_COLUMNS.put(DataSourceType.ODOO_MANUFACTURING_ORDERS, List.of("display_name"));
         LOOKUP_COLUMNS.put(DataSourceType.STATIC_LIST, List.of());
     }
 
@@ -158,7 +171,12 @@ public class DataSourceResolver {
      * de duplicar la llamada RPC.
      */
     public Optional<DataSourceOption> lookup(DataSourceType type, String column, String code) {
-        return findRow(type, column, code).map(row -> new DataSourceOption(stringId(row.get("id")), label(row)));
+        return lookup(type, column, code, null);
+    }
+
+    /** Igual que lookup(), pero filtrando por rutas de estacion como resolve()/resolveTable() -- ver filterByRouteProducts. */
+    public Optional<DataSourceOption> lookup(DataSourceType type, String column, String code, Long stationId) {
+        return findRow(type, column, code, stationId).map(row -> new DataSourceOption(stringId(row.get("id")), label(row)));
     }
 
     /**
@@ -168,7 +186,12 @@ public class DataSourceResolver {
      * operario), no solo un unico texto resuelto.
      */
     public Optional<Map<String, Object>> lookupRow(DataSourceType type, String column, String code) {
-        return findRow(type, column, code);
+        return lookupRow(type, column, code, null);
+    }
+
+    /** Igual que lookupRow(), pero filtrando por rutas de estacion -- ver filterByRouteProducts. */
+    public Optional<Map<String, Object>> lookupRow(DataSourceType type, String column, String code, Long stationId) {
+        return findRow(type, column, code, stationId);
     }
 
     /**
@@ -180,7 +203,7 @@ public class DataSourceResolver {
      * sin tener que resolver el codigo dos veces.
      */
     public Optional<SerialLookupResult> lookupSerial(String code) {
-        return findRow(DataSourceType.ODOO_SERIALS, "name", code)
+        return findRow(DataSourceType.ODOO_SERIALS, "name", code, null)
                 .map(row -> new SerialLookupResult(stringId(row.get("id")), label(row), productLabel(row)));
     }
 
@@ -196,7 +219,14 @@ public class DataSourceResolver {
         return null;
     }
 
-    private Optional<Map<String, Object>> findRow(DataSourceType type, String column, String code) {
+    /**
+     * stationId opcional: si el tipo es ordenes de fabricacion y se pasa,
+     * un codigo que exista en Odoo pero cuyo producto no tenga ruta por esta
+     * estacion se trata como "no encontrado" -- mismo mensaje de siempre, sin
+     * distinguir "no existe" de "existe pero no aplica aqui" (ver
+     * filterByRouteProducts).
+     */
+    private Optional<Map<String, Object>> findRow(DataSourceType type, String column, String code, Long stationId) {
         if (!lookupColumnsFor(type).contains(column)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     messages.get("dataSource.invalidLookupColumn", column, type));
@@ -206,7 +236,11 @@ public class DataSourceResolver {
             return Optional.empty();
         }
         OdooMasterDataEntity entity = odooEntity(type);
-        return masterDataService.list(entity, 500, 0).stream()
+        List<Map<String, Object>> rows = masterDataService.list(entity, 500, 0);
+        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
+            rows = filterByRouteProducts(rows, stationId);
+        }
+        return rows.stream()
                 .filter(row -> {
                     Object value = row.get(column);
                     return value != null && value.toString().trim().equalsIgnoreCase(needle);

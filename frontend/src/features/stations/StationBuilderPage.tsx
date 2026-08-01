@@ -565,6 +565,7 @@ export function StationBuilderPage() {
                   eventName={eventLabel(events, widget.sourceEventId)}
                   onSelect={setSelectedUid}
                   onLayoutChange={updateLayout}
+                  stationId={id}
                 />
               ))}
               {dragState?.cell &&
@@ -641,6 +642,7 @@ function WidgetBox({
   eventName,
   onSelect,
   onLayoutChange,
+  stationId,
 }: {
   widget: EditableWidget;
   selected: boolean;
@@ -649,6 +651,8 @@ function WidgetBox({
   eventName: string | null;
   onSelect: (uid: string) => void;
   onLayoutChange: (uid: string, layout: WidgetLayout) => void;
+  /** Filtro por rutas de ordenes de fabricacion en la previsualizacion del builder (undefined en estacion nueva sin guardar). */
+  stationId?: string;
 }) {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const drag = React.useRef<
@@ -801,7 +805,7 @@ function WidgetBox({
             paddingBottom: PART_GAP,
           }}
         >
-          <WidgetView widget={widget} interactive={false} deviceName={deviceName} eventName={eventName} />
+          <WidgetView widget={widget} interactive={false} deviceName={deviceName} eventName={eventName} stationId={stationId} />
         </div>
 
         <div
@@ -1288,13 +1292,18 @@ function PropertiesPanel({
         </div>
       )}
 
-      {/* Solo tiene sentido para ordenes de fabricacion: limita la lista a
-          ordenes cuyo producto tenga una ruta HABILITADA que incluya esta
-          estacion (calculado en vivo, no un producto fijo grabado aqui). Si
-          ninguna ruta cubre la estacion, o alguna la cubre sin fijar
-          producto, no filtra nada -- apagado por defecto, no cambia el
-          comportamiento de estaciones existentes. */}
-      {widget.widgetType === "DROPDOWN" && dsType === "ODOO_MANUFACTURING_ORDERS" && (
+      {/* Solo tiene sentido para ordenes de fabricacion: limita la lista (o,
+          en TEXT_INPUT, la validez de un codigo tecleado/escaneado) a ordenes
+          cuyo producto tenga una ruta HABILITADA que incluya esta estacion
+          (calculado en vivo, no un producto fijo grabado aqui). Disponible en
+          los tres tipos que pueden elegir ODOO_MANUFACTURING_ORDERS como
+          origen (DROPDOWN/TABLE/TEXT_INPUT -- NUMBER_INPUT no admite origen de
+          datos en absoluto). Si ninguna ruta cubre la estacion, o alguna la
+          cubre sin fijar producto, no filtra nada -- apagado por defecto, no
+          cambia el comportamiento de estaciones existentes (ver conversacion
+          2026-08-01). */}
+      {(widget.widgetType === "DROPDOWN" || widget.widgetType === "TABLE" || widget.widgetType === "TEXT_INPUT") &&
+        dsType === "ODOO_MANUFACTURING_ORDERS" && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="widget-filter-by-route"
