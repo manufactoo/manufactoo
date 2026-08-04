@@ -147,10 +147,15 @@ public class StationController {
         return Map.of("recordId", recordId);
     }
 
-    /** Registros de genealogia de una estacion (consulta). */
+    /**
+     * Registros de genealogia de una estacion (consulta). limit opcional: lo
+     * usa el widget STATION_HISTORY para traer solo los N mas recientes; sin
+     * el, se mantiene el comportamiento de siempre (todos, para la pagina de
+     * Registros).
+     */
     @GetMapping("/{id}/records")
-    public List<TraceRecordDto> records(@PathVariable Long id) {
-        return service.listRecords(id);
+    public List<TraceRecordDto> records(@PathVariable Long id, @RequestParam(required = false) Integer limit) {
+        return service.listRecords(id, limit);
     }
 
     /** Lotes/series activos ahora mismo en la estacion. */

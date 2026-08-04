@@ -155,6 +155,9 @@ function defaultSize(type: string): { w: number; h: number } {
       // Area de partida generosa: se coloca primero y se agranda/mueve a
       // mano hasta cubrir los widgets que va a agrupar visualmente.
       return { w: 6, h: 8 };
+    case "STATION_HISTORY":
+      // Como TABLE: necesita sitio para varias filas, no una sola linea.
+      return { w: 12, h: 10 };
     default:
       return { w: 6, h: heightForFontSize("DROPDOWN", "value", "MD", false) ?? 1.5 };
   }
@@ -563,6 +566,8 @@ export function StationBuilderPage() {
                   gridRef={gridRef}
                   deviceName={devices.find((d) => d.id === widget.sourceDeviceId)?.name ?? null}
                   eventName={eventLabel(events, widget.sourceEventId)}
+                  stationName={station.name}
+                  screenTitle={screen?.title}
                   onSelect={setSelectedUid}
                   onLayoutChange={updateLayout}
                   stationId={id}
@@ -640,6 +645,8 @@ function WidgetBox({
   gridRef,
   deviceName,
   eventName,
+  stationName,
+  screenTitle,
   onSelect,
   onLayoutChange,
   stationId,
@@ -649,6 +656,9 @@ function WidgetBox({
   gridRef: React.RefObject<HTMLDivElement | null>;
   deviceName: string | null;
   eventName: string | null;
+  /** Para LABEL con config.showStationName/showScreenTitle -- ver conversacion 2026-08-03. */
+  stationName: string;
+  screenTitle: string | undefined;
   onSelect: (uid: string) => void;
   onLayoutChange: (uid: string, layout: WidgetLayout) => void;
   /** Filtro por rutas de ordenes de fabricacion en la previsualizacion del builder (undefined en estacion nueva sin guardar). */
@@ -805,7 +815,15 @@ function WidgetBox({
             paddingBottom: PART_GAP,
           }}
         >
-          <WidgetView widget={widget} interactive={false} deviceName={deviceName} eventName={eventName} stationId={stationId} />
+          <WidgetView
+            widget={widget}
+            interactive={false}
+            deviceName={deviceName}
+            eventName={eventName}
+            stationId={stationId}
+            stationName={stationName}
+            screenTitle={screenTitle}
+          />
         </div>
 
         <div
@@ -1292,6 +1310,40 @@ function PropertiesPanel({
         </div>
       )}
 
+      {/* Que columnas de Odoo se ven en la tabla -- mismo patron que "Mostrar
+          como" de DROPDOWN (mismo catalogo displayColumns, mismo criterio de
+          orden fijo del catalogo en vez de orden de clic). Vacio (por
+          defecto) = se siguen mostrando todas las columnas automaticamente,
+          comportamiento de siempre -- cero impacto en tablas ya guardadas
+          (ver conversacion 2026-08-03). */}
+      {widget.widgetType === "TABLE" && dsType !== "" && dsType !== "STATIC_LIST" && (
+        <div className="space-y-1.5">
+          <FieldLabel text={t("stations.widget.tableColumns")} hint={t("stations.widget.tableColumnsHint")} />
+          <div className="space-y-1">
+            {(displayColumns[dsType] ?? []).map((col) => {
+              const current = (widget.config.columns as string[] | undefined) ?? [];
+              const checked = current.includes(col);
+              return (
+                <div key={col} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`tablecol-${col}`}
+                    checked={checked}
+                    onCheckedChange={(v) => {
+                      const cols = displayColumns[dsType] ?? [];
+                      const next = v === true ? cols.filter((c) => c === col || current.includes(c)) : current.filter((c) => c !== col);
+                      setConfig("columns", next.length > 0 ? next : undefined);
+                    }}
+                  />
+                  <Label htmlFor={`tablecol-${col}`} className="text-xs font-normal">
+                    {t(`masterData.columns.${col}`, { defaultValue: col })}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Solo tiene sentido para ordenes de fabricacion: limita la lista (o,
           en TEXT_INPUT, la validez de un codigo tecleado/escaneado) a ordenes
           cuyo producto tenga una ruta HABILITADA que incluya esta estacion
@@ -1493,8 +1545,13 @@ function PropertiesPanel({
 
       {/* Una Etiqueta es texto fijo (se teclea directamente encima del propio
           widget en el canvas, ver InlineTextEdit en WidgetView), esta
-          vinculada a otro widget de la estacion, o muestra la fecha/hora
-          actual en vivo. */}
+          vinculada a otro widget de la estacion, o muestra un "contenido
+          especial" en vivo: fecha/hora, nombre de la estacion, o titulo de
+          la pantalla actual -- las tres ultimas son mutuamente excluyentes
+          entre si y con texto/vinculacion (activar una desactiva las demas),
+          mismo patron para las tres (ver conversacion 2026-08-03: antes el
+          nombre de estacion/pantalla los imponia el runtime fijos arriba,
+          sin poder moverlos, ocultarlos ni darles estilo). */}
       {widget.widgetType === "LABEL" && (
         <>
           <div className="flex items-center gap-2">
@@ -1506,7 +1563,8 @@ function PropertiesPanel({
                   config: {
                     ...widget.config,
                     showDateTime: v === true ? true : undefined,
-                    // La fecha/hora anula el resto de modos de texto.
+                    showStationName: v === true ? undefined : widget.config.showStationName,
+                    showScreenTitle: v === true ? undefined : widget.config.showScreenTitle,
                     text: v === true ? undefined : widget.config.text,
                     boundTo: v === true ? undefined : widget.config.boundTo,
                     boundField: v === true ? undefined : widget.config.boundField,
@@ -1528,7 +1586,53 @@ function PropertiesPanel({
               />
             </div>
           )}
-          {widget.config.showDateTime !== true && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="widget-show-station-name"
+              checked={widget.config.showStationName === true}
+              onCheckedChange={(v) =>
+                onChange({
+                  config: {
+                    ...widget.config,
+                    showStationName: v === true ? true : undefined,
+                    showDateTime: v === true ? undefined : widget.config.showDateTime,
+                    showScreenTitle: v === true ? undefined : widget.config.showScreenTitle,
+                    text: v === true ? undefined : widget.config.text,
+                    boundTo: v === true ? undefined : widget.config.boundTo,
+                    boundField: v === true ? undefined : widget.config.boundField,
+                  },
+                })
+              }
+            />
+            <Label htmlFor="widget-show-station-name" className="text-xs">
+              {t("stations.widget.showStationName")}
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="widget-show-screen-title"
+              checked={widget.config.showScreenTitle === true}
+              onCheckedChange={(v) =>
+                onChange({
+                  config: {
+                    ...widget.config,
+                    showScreenTitle: v === true ? true : undefined,
+                    showDateTime: v === true ? undefined : widget.config.showDateTime,
+                    showStationName: v === true ? undefined : widget.config.showStationName,
+                    text: v === true ? undefined : widget.config.text,
+                    boundTo: v === true ? undefined : widget.config.boundTo,
+                    boundField: v === true ? undefined : widget.config.boundField,
+                  },
+                })
+              }
+            />
+            <Label htmlFor="widget-show-screen-title" className="text-xs">
+              {t("stations.widget.showScreenTitle")}
+            </Label>
+          </div>
+          {widget.config.showDateTime !== true &&
+            widget.config.showStationName !== true &&
+            widget.config.showScreenTitle !== true && (
             <>
               <div className="space-y-1.5">
                 <FieldLabel text={t("stations.widget.boundTo")} hint={t("stations.widget.boundToHint")} />
@@ -1586,6 +1690,45 @@ function PropertiesPanel({
         </>
       )}
 
+      {/* Que columnas del historial se ven -- las disponibles son los bindingKey
+          de TODA la estacion que capturan dato (misma lista que "Vincular a"
+          de las Etiquetas, ya calculada en bindableWidgets), no un catalogo
+          Odoo: STATION_HISTORY no tiene origen de datos propio, lee
+          captured_data de station_trace_records. Vacio (por defecto) = se
+          siguen mostrando todas las columnas capturadas automaticamente
+          (comportamiento de siempre, ver WidgetView.StationHistoryWidget).
+          Orden fijo (el de bindableWidgets), no el de clic, igual criterio
+          que "Mostrar como" de DROPDOWN mas arriba. */}
+      {widget.widgetType === "STATION_HISTORY" && (
+        <div className="space-y-1.5">
+          <FieldLabel text={t("stations.widget.historyColumns")} hint={t("stations.widget.historyColumnsHint")} />
+          <div className="space-y-1">
+            {bindableWidgets.map((b) => {
+              const current = (widget.config.columns as string[] | undefined) ?? [];
+              const checked = current.includes(b.bindingKey);
+              return (
+                <div key={b.bindingKey} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`historycol-${b.bindingKey}`}
+                    checked={checked}
+                    onCheckedChange={(v) => {
+                      const all = bindableWidgets.map((bw) => bw.bindingKey);
+                      const next = v === true
+                        ? all.filter((k) => k === b.bindingKey || current.includes(k))
+                        : current.filter((k) => k !== b.bindingKey);
+                      setConfig("columns", next.length > 0 ? next : undefined);
+                    }}
+                  />
+                  <Label htmlFor={`historycol-${b.bindingKey}`} className="text-xs font-normal">
+                    {b.label || b.bindingKey}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* "text" de LABEL se oculta solo si esta vinculada a otro widget (ver
           "Vincular a" mas arriba): en ese caso el texto se calcula, no se
           teclea, asi que el campo no tendria efecto. "result" de BUTTON solo
@@ -1596,6 +1739,7 @@ function PropertiesPanel({
         .filter((field) => !(widget.widgetType === "LABEL" && field.key === "text" && Boolean(boundTo)))
         .filter((field) => !(widget.widgetType === "BUTTON" && field.key === "result" && widget.config.action !== "SUBMIT"))
         .filter((field) => field.key !== "finalizesFlow" && field.key !== "sticky") // ya pintadas junto a "Obligatorio", ver arriba
+        .filter((field) => !["showDateTime", "dateTimeFormat", "showStationName", "showScreenTitle"].includes(field.key)) // LABEL: ya pintadas en su bloque especial de arriba, con su propio texto traducido
         .map((field) =>
         field.type === "CHECKBOX" ? (
         /* Casilla transversal (mismo aspecto que "Obligatorio"): se guarda

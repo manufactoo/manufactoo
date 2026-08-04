@@ -1,7 +1,14 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { IconAlertTriangle, IconArrowLeft, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import {
+  IconAlertTriangle,
+  IconArrowLeft,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCircleCheck,
+  IconInfoCircle,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiClient } from "@/lib/api-client";
@@ -82,6 +89,10 @@ export function StationRuntimePage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [flash, setFlash] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  // Se incrementa tras cada envio con exito -- unico consumidor: STATION_HISTORY
+  // (ver WidgetView.tsx), para que refresque y el operario vea su propio envio
+  // al instante sin recargar la pantalla.
+  const [historyVersion, setHistoryVersion] = React.useState(0);
 
   const screens: Screen[] = station?.screens ?? [];
   const screen: Screen | undefined = screens[current];
@@ -280,6 +291,7 @@ export function StationRuntimePage() {
           : Object.fromEntries(stickyKeys.filter((k) => payload[k] !== undefined).map((k) => [k, payload[k]])),
       );
       setCurrent(0);
+      setHistoryVersion((v) => v + 1);
       setFlash(t("stations.runtime.submitted"));
       window.setTimeout(() => setFlash(null), 3000);
     } catch (err) {
@@ -317,30 +329,17 @@ export function StationRuntimePage() {
 
   return (
     <div className="space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* En modo kiosko (dentro del Player) no hay a donde "volver": el
-              operario no tiene acceso al listado de estaciones ni al resto
-              del panel de administracion. */}
-          {!bridge && (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/stations")}>
-              <IconArrowLeft className="mr-1 size-4" />
-              {t("stations.runtime.back")}
-            </Button>
-          )}
-          <div>
-            <h1 className="text-xl font-semibold">{station.name}</h1>
-            <p className="text-xs text-muted-foreground">
-              {screen?.title || t("stations.builder.screenN", { n: current + 1 })}
-              {screens.length > 1 && ` · ${current + 1}/${screens.length}`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {flash && <span className="text-sm text-emerald-600">{flash}</span>}
-          {error && <span className="text-sm text-destructive">{error}</span>}
-        </div>
-      </div>
+      {/* Sin nombre de estacion/titulo de pantalla fijos aqui: ahora son
+          contenido "vivo" de un LABEL mas (config.showStationName/
+          showScreenTitle, ver WidgetView.tsx) que el diseñador coloca donde
+          quiera -- solo el boton Volver se queda fijo, es navegacion, no
+          contenido (ver conversacion 2026-08-03). */}
+      {!bridge && (
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/stations")}>
+          <IconArrowLeft className="mr-1 size-4" />
+          {t("stations.runtime.back")}
+        </Button>
+      )}
 
       <Card>
         <CardContent className="p-4">
@@ -375,6 +374,9 @@ export function StationRuntimePage() {
                   <WidgetView
                     widget={widget}
                     stationId={id}
+                    historyVersion={historyVersion}
+                    stationName={station.name}
+                    screenTitle={screen?.title}
                     value={widget.bindingKey ? values[widget.bindingKey] : undefined}
                     options={
                       widget.dataSource?.type
@@ -431,38 +433,60 @@ export function StationRuntimePage() {
             ),
         )}
 
-      {/* Zona fija comun para los errores de validacion activos (codigo
-          invalido/no encontrado): cada widget reporta el suyo via onError en
-          vez de pintarlo el mismo, asi que el widget se queda exactamente
-          como se diseño en el layout, por pequeño que sea. */}
-      {activeWidgetErrors.length > 0 && (
-        <div className="space-y-1 rounded-md border border-destructive/50 bg-destructive/10 p-3">
-          {activeWidgetErrors.map((message, i) => (
-            <p key={i} className="flex items-center gap-1.5 text-sm text-destructive">
-              <IconAlertTriangle className="size-3.5 shrink-0" />
-              {message}
-            </p>
-          ))}
-        </div>
-      )}
-
-      {/* Navegacion de la secuencia: Atras/Siguiente siguen siendo por
-          defecto, pero Finalizar ya no lo es -- lo decide el diseñador
+      {/* Navegacion de la secuencia + zona fija comun de mensajes, unificada
+          en una sola fila de 3 columnas (Atras | mensajes | Siguiente) --
+          antes habia DOS zonas de mensajes separadas (flash/error arriba a
+          la derecha, errores de validacion por widget encima de esta fila),
+          ahora es una sola, siempre en el mismo sitio (ver conversacion
+          2026-08-03). grid (no flex justify-between) para que la columna
+          central quede centrada de verdad incluso cuando falta el boton
+          Siguiente (ultima pantalla). Prioridad si hay varios mensajes a la
+          vez: error de envio > errores de campo activos > aviso de exito >
+          estado neutro (para que la fila nunca se quede vacia/rara).
+          Finalizar ya no es un boton por defecto -- lo decide el diseñador
           colocando su propio widget finalizador (BUTTON action=SUBMIT, o un
           TEXT_INPUT/DROPDOWN con "finaliza el flujo" marcado), validado al
-          guardar la estacion (ver StationService.validate). Sin fallback
-          aqui: si no hay ninguno, la estacion no se puede ni guardar. */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={() => goTo(current - 1)} disabled={current === 0}>
-          <IconChevronLeft className="mr-1 size-4" />
-          {t("stations.runtime.prev")}
-        </Button>
-        {!isLast && (
-          <Button onClick={() => goTo(current + 1)}>
-            {t("stations.runtime.next")}
-            <IconChevronRight className="ml-1 size-4" />
+          guardar la estacion (ver StationService.validate). */}
+      <div className="grid grid-cols-3 items-center gap-3">
+        <div>
+          <Button variant="outline" onClick={() => goTo(current - 1)} disabled={current === 0}>
+            <IconChevronLeft className="mr-1 size-4" />
+            {t("stations.runtime.prev")}
           </Button>
-        )}
+        </div>
+        <div className="flex flex-col items-center justify-center gap-1 text-center">
+          {error ? (
+            <p className="flex items-center gap-1.5 text-base font-medium text-destructive">
+              <IconAlertTriangle className="size-4 shrink-0" />
+              {error}
+            </p>
+          ) : activeWidgetErrors.length > 0 ? (
+            activeWidgetErrors.map((message, i) => (
+              <p key={i} className="flex items-center gap-1.5 text-base font-medium text-destructive">
+                <IconAlertTriangle className="size-4 shrink-0" />
+                {message}
+              </p>
+            ))
+          ) : flash ? (
+            <p className="flex items-center gap-1.5 text-base font-medium text-emerald-600">
+              <IconCircleCheck className="size-4 shrink-0" />
+              {flash}
+            </p>
+          ) : (
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <IconInfoCircle className="size-4 shrink-0" />
+              {t("stations.runtime.statusIdle")}
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end">
+          {!isLast && (
+            <Button onClick={() => goTo(current + 1)}>
+              {t("stations.runtime.next")}
+              <IconChevronRight className="ml-1 size-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <MaterialsDialog

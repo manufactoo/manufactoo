@@ -125,14 +125,28 @@ public class StationService {
     }
 
     /** Registros de genealogia de una estacion, mas recientes primero. */
-    @Transactional
     public List<TraceRecordDto> listRecords(Long stationId) {
+        return listRecords(stationId, null);
+    }
+
+    /**
+     * Igual que listRecords(stationId), pero limitando cuantos trae -- lo usa
+     * el widget STATION_HISTORY (ultimos N registros de la propia estacion,
+     * para que el operario los vea sin salir a la pagina de Registros). null
+     * o <=0 significa sin limite, igual que antes de este parametro.
+     */
+    @Transactional
+    public List<TraceRecordDto> listRecords(Long stationId, Integer limit) {
         requireAppInstalled();
         if (!repository.existsById(stationId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, messages.get("station.notFound"));
         }
-        return traceRepository.findByStationIdOrderByCreatedAtDesc(stationId).stream()
-                .map(TraceRecordDto::from).toList();
+        var records = traceRepository.findByStationIdOrderByCreatedAtDesc(stationId).stream()
+                .map(TraceRecordDto::from);
+        if (limit != null && limit > 0) {
+            records = records.limit(limit);
+        }
+        return records.toList();
     }
 
     /** Sube una imagen para un widget IMAGE y devuelve su id. */
@@ -584,16 +598,22 @@ public class StationService {
     private void validateLabelBinding(UpsertWidget w, Set<String> allBindingKeys) {
         Object text = w.config() != null ? w.config().get("text") : null;
         Object boundTo = w.config() != null ? w.config().get("boundTo") : null;
-        Object showDateTime = w.config() != null ? w.config().get("showDateTime") : null;
-        boolean hasDateTime = showDateTime != null && Boolean.parseBoolean(showDateTime.toString());
+        boolean hasSpecialContent = isConfigFlagTrue(w, "showDateTime")
+                || isConfigFlagTrue(w, "showStationName")
+                || isConfigFlagTrue(w, "showScreenTitle");
         boolean hasText = text != null && !text.toString().isBlank();
         boolean hasBinding = boundTo != null && !boundTo.toString().isBlank();
-        if (!hasText && !hasBinding && !hasDateTime) {
+        if (!hasText && !hasBinding && !hasSpecialContent) {
             throw badRequest(messages.get("station.label.needsTextOrBinding"));
         }
         if (hasBinding && !allBindingKeys.contains(boundTo.toString())) {
             throw badRequest(messages.get("station.label.boundToMissing", boundTo));
         }
+    }
+
+    private boolean isConfigFlagTrue(UpsertWidget w, String key) {
+        Object value = w.config() != null ? w.config().get(key) : null;
+        return value != null && Boolean.parseBoolean(value.toString());
     }
 
     /** Sufijo de la clave "hermana" que guarda la version legible de un valor con origen de datos (ver normalizeDataSourceValues). */

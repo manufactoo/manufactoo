@@ -67,7 +67,8 @@
       "host": "Host / IP",
       "vendorId": "Vendor ID",
       "productId": "Product ID",
-      "queue": "Cola de impresion"
+      "queue": "Cola de impresion",
+      "valuePattern": "Patron del valor (regex, opcional). Se aplica a cada linea antes de mandarla al campo: usa el primer grupo de captura si lo tiene, o toda la coincidencia si no. Vacio = se manda la linea tal cual."
     },
     "fieldOptions": {
       "parity": {
@@ -219,6 +220,8 @@
       "noDataSource": "Ninguno (texto libre)",
       "labelColumns": "Mostrar como",
       "labelColumnsHint": "Que columna(s) se ven en cada opcion del desplegable. Sin elegir ninguna, se usa el nombre. Eligiendo varias, se combinan en el mismo orden.",
+      "tableColumns": "Columnas a mostrar",
+      "tableColumnsHint": "Que columnas de la tabla se ven. Sin elegir ninguna, se muestran todas automaticamente.",
       "filterByStationRoute": "Solo ordenes cuyo producto tiene ruta por esta estacion",
       "filterByStationRouteHint": "Se mira el producto de cada orden: si tiene una ruta habilitada que pasa por esta estacion, se enseña; si no, se oculta. Si ninguna ruta incluye esta estacion, o alguna no fija producto (vale para cualquiera), se enseñan todas igualmente.",
       "textInputDataSourceHint": "Opcional: primero elige de que dato maestro de Odoo viene el valor (p. ej. Operarios), luego que dato se teclea (p. ej. codigo de operario). Para mostrar un dato del registro encontrado (nombre, departamento...) añade una Etiqueta y vinculala a este campo.",
@@ -229,10 +232,14 @@
       "boundFieldHint": "Que dato del widget vinculado se enseña: el valor tal cual, o (si viene de un dato maestro de Odoo) una de sus columnas.",
       "boundFieldValue": "El valor introducido/seleccionado",
       "showDateTime": "Mostrar fecha y hora actual",
+      "showStationName": "Mostrar nombre de la estacion",
+      "showScreenTitle": "Mostrar titulo de la pantalla actual",
       "dateTimeFormat": "Formato de fecha y hora",
       "dateTimeFormatHint": "Formato de date-fns, p. ej. dd/MM/yyyy HH:mm:ss. Se actualiza cada segundo en el runtime.",
       "detailPreviewValue": "Ejemplo",
       "stationMaterialsPreview": "Solo informativo: lista de lotes/series activos en la estacion. Se cargan desde el boton Materiales.",
+      "historyColumns": "Columnas a mostrar",
+      "historyColumnsHint": "Que datos capturados por esta estacion se ven en el historial. Sin elegir ninguno, se muestran todos automaticamente.",
       "staticOptions": "Opciones (una por linea: valor|etiqueta)",
       "position": "Posicion y tamano",
       "x": "Columna (X)",
@@ -250,7 +257,8 @@
       "TABLE": "Tabla",
       "BUTTON": "Boton",
       "STATION_MATERIALS": "Materiales de la estacion",
-      "PANEL": "Panel"
+      "PANEL": "Panel",
+      "STATION_HISTORY": "Historial de la estacion"
     },
     "dataSources": {
       "STATIC_LIST": "Lista estatica",
@@ -337,6 +345,7 @@
       "back": "Volver",
       "prev": "Atras",
       "next": "Siguiente",
+      "statusIdle": "Sin incidencias",
       "emptyScreen": "Esta pantalla no tiene widgets todavia.",
       "scanPlaceholder": "Escanea o pega el codigo y pulsa Enter",
       "scanNotFound": "{{field}}: no se ha encontrado ningun registro con el codigo \"{{code}}\".",
@@ -393,6 +402,14 @@
     "asMaterial": {
       "title": "Usado como material en",
       "empty": "Este codigo no se ha usado como material en ninguna estacion."
+    },
+    "recent": {
+      "title": "Ultimos registros",
+      "total": "{{count}} en total",
+      "empty": "Todavia no hay ningun registro de trazabilidad.",
+      "identifier": "Identificador",
+      "page": "Pagina {{page}} de {{totalPages}}",
+      "back": "Volver a recientes"
     }
   },
   "masterData": {

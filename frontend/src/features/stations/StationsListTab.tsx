@@ -151,7 +151,7 @@ export function StationsListTab() {
                   {stations.map((station) => (
                     <TableRow key={station.id}>
                       <TableCell className="font-medium">{station.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="max-w-xs truncate text-muted-foreground" title={station.description || undefined}>
                         {station.description || t("stations.widgetCount", { count: widgetCount(station) })}
                       </TableCell>
                       <TableCell>
@@ -159,7 +159,7 @@ export function StationsListTab() {
                           {station.enabled ? t("stations.enabled") : "—"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="space-x-2 text-right">
+                      <TableCell className="space-x-2 whitespace-normal text-right">
                         <Button asChild variant="default" size="sm">
                           <Link to={`/dashboard/stations/${station.id}/builder`}>{t("stations.openBuilder")}</Link>
                         </Button>

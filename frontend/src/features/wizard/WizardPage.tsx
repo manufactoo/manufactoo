@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { IconStack2 } from "@tabler/icons-react";
 import { Progress } from "@/components/ui/progress";
 import { useWizardStore } from "@/features/wizard/wizard-state";
 import { Step1Language } from "@/features/wizard/steps/Step1Language";
@@ -28,7 +27,7 @@ export function WizardPage() {
   return (
     <div className="flex min-h-svh flex-col items-center bg-muted/30 px-4 py-10">
       <div className="mb-8 flex items-center gap-2">
-        <IconStack2 className="size-7 text-primary" />
+        <img src="/manufactoo-logo.png" alt="Manufactoo" className="size-8" />
         <span className="text-xl font-semibold">Manufactoo</span>
       </div>
 

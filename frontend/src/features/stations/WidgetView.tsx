@@ -12,7 +12,7 @@ import { apiClient } from "@/lib/api-client";
 import { useStationAssetUrl } from "./useStationAssetUrl";
 import { getBridge } from "./manufactoo-bridge";
 import { fetchDataSourceTable } from "./dataSourceTableCache";
-import type { DataSourceOption, DataSourceTable, MaterialLoad, Widget, WidgetStyle } from "./types";
+import type { DataSourceOption, DataSourceTable, MaterialLoad, TraceRecord, Widget, WidgetStyle } from "./types";
 
 /**
  * Resuelve un codigo en bruto contra Odoo, compartido por el escaneo manual y
@@ -53,6 +53,7 @@ export const WIDGET_STYLE_PARTS: Record<string, string[]> = {
   TABLE: ["header", "cell"],
   IMAGE: ["image"],
   PANEL: ["panel"],
+  STATION_HISTORY: ["header", "cell"],
 };
 
 /**
@@ -64,6 +65,7 @@ export const WIDGET_STYLE_PARTS: Record<string, string[]> = {
  */
 export const OPTIONAL_STYLE_PARTS: Record<string, string[]> = {
   TABLE: ["header"],
+  STATION_HISTORY: ["header"],
 };
 
 function partStyle(widget: Widget, part: string): WidgetStyle {
@@ -234,6 +236,15 @@ export interface WidgetViewProps {
    * si aplica (nunca se manda "por si acaso" para otros origenes de datos).
    */
   stationId?: string | number;
+  /**
+   * Se incrementa cada vez que el runtime envia un registro con exito, para
+   * que STATION_HISTORY (unicamente quien lo usa) vuelva a pedir sus datos y
+   * el operario vea su propio envio al instante, sin recargar la pantalla.
+   */
+  historyVersion?: number;
+  /** Para LABEL con config.showStationName/showScreenTitle -- ver conversacion 2026-08-03. */
+  stationName?: string;
+  screenTitle?: string;
   interactive?: boolean;
 }
 
@@ -253,6 +264,9 @@ export function WidgetView({
   onError,
   materialLoads,
   stationId,
+  historyVersion,
+  stationName,
+  screenTitle,
   interactive = true,
 }: WidgetViewProps) {
   const { t } = useTranslation("dashboard");
@@ -264,11 +278,22 @@ export function WidgetView({
     const boundTo = widget.config.boundTo as string | undefined;
     const showDateTime = widget.config.showDateTime === true;
     const dateTimeFormat = (widget.config.dateTimeFormat as string) || "dd/MM/yyyy HH:mm:ss";
+    const showStationName = widget.config.showStationName === true;
+    const showScreenTitle = widget.config.showScreenTitle === true;
 
     const liveDateTime = useLiveDateTime(dateTimeFormat, showDateTime && interactive);
     let text: string;
     if (showDateTime) {
       text = interactive ? liveDateTime : format(new Date(), dateTimeFormat);
+    } else if (showStationName) {
+      // Nombre real de la estacion, no un texto copiado a mano -- si se
+      // renombra la estacion, este LABEL nunca queda desincronizado (ver
+      // conversacion 2026-08-03). stationName siempre llega relleno tanto en
+      // diseño como en runtime (a diferencia de boundTo, no hace falta un
+      // "todavia no hay dato" -- una estacion siempre tiene nombre).
+      text = stationName ?? "";
+    } else if (showScreenTitle) {
+      text = screenTitle ?? "";
     } else if (boundTo) {
       // Vinculada a otro widget: el texto ya no se teclea, se calcula. En
       // diseno no hay ningun dato real todavia (nadie ha tecleado/seleccionado
@@ -362,6 +387,10 @@ export function WidgetView({
 
   if (widget.widgetType === "STATION_MATERIALS") {
     return <StationMaterialsWidget loads={materialLoads ?? []} interactive={interactive} />;
+  }
+
+  if (widget.widgetType === "STATION_HISTORY") {
+    return <StationHistoryWidget widget={widget} stationId={stationId} historyVersion={historyVersion} />;
   }
 
   if (widget.widgetType === "DROPDOWN") {
@@ -567,6 +596,113 @@ function StationMaterialsWidget({ loads, interactive }: { loads: MaterialLoad[];
           </div>
         ))
       )}
+    </div>
+  );
+}
+
+/**
+ * Claves de captured_data que no son columnas propias: son la version legible
+ * en paralelo de un valor con origen de datos (p. ej. "serial__label" junto a
+ * "serial") -- mismo criterio que StationRecordsPage.tsx.
+ */
+const HISTORY_LABEL_SUFFIX = "__label";
+
+/**
+ * Ultimos N registros de trazabilidad de ESTA estacion (station_trace_records),
+ * puramente informativo para que el operario vea sobre la marcha lo ultimo que
+ * ha pasado por su puesto -- mismas columnas y logica que StationRecordsPage
+ * (union de claves capturadas, preferir el "__label" resuelto sobre el valor
+ * crudo), pero como widget embebido en el propio lienzo. Se refresca solo:
+ * al montarse y cada vez que historyVersion cambia (el runtime lo incrementa
+ * tras cada envio con exito, ver StationRuntimePage).
+ */
+function StationHistoryWidget({
+  widget,
+  stationId,
+  historyVersion,
+}: {
+  widget: Widget;
+  stationId?: string | number;
+  historyVersion?: number;
+}) {
+  const { t, i18n } = useTranslation("dashboard");
+  const [records, setRecords] = React.useState<TraceRecord[] | null>(null);
+  const [error, setError] = React.useState(false);
+  const maxRows = Number(widget.config.maxRows) || 10;
+  const headerStyle = partStyle(widget, "header");
+  const cellStyle = partStyle(widget, "cell");
+
+  React.useEffect(() => {
+    if (!stationId) {
+      setRecords(null);
+      return;
+    }
+    setError(false);
+    apiClient
+      .get<TraceRecord[]>(`/api/stations/${stationId}/records`, { params: { limit: maxRows } })
+      .then(({ data }) => setRecords(data))
+      .catch(() => setError(true));
+  }, [stationId, maxRows, historyVersion]);
+
+  // config.columns (elegido en Propiedades, orden fijo del diseñador): si esta
+  // vacio/sin elegir, se sigue mostrando todo automaticamente (union de claves
+  // capturadas, comportamiento de siempre) -- ver StationBuilderPage.tsx.
+  const configuredColumns = (widget.config.columns as string[] | undefined) ?? [];
+  const keys = React.useMemo(() => {
+    if (configuredColumns.length > 0) return configuredColumns;
+    const set = new Set<string>();
+    (records ?? []).forEach((r) =>
+      Object.keys(r.capturedData)
+        .filter((k) => !k.endsWith(HISTORY_LABEL_SUFFIX))
+        .forEach((k) => set.add(k)),
+    );
+    return [...set];
+  }, [records, configuredColumns.join(",")]);
+
+  if (error) return <p className="text-xs text-destructive">{t("stations.runtime.loadOptionsError")}</p>;
+  if (!records || records.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("stations.records.empty")}</p>;
+  }
+
+  return (
+    <div className="no-scrollbar h-full overflow-auto rounded border">
+      <Table>
+        {!headerStyle.hidden && (
+          <TableHeader>
+            <TableRow>
+              <TableHead className={textClasses(headerStyle)} style={{ ...textColorStyle(headerStyle), ...backgroundStyle(headerStyle) }}>
+                {t("stations.records.date")}
+              </TableHead>
+              <TableHead className={textClasses(headerStyle)} style={{ ...textColorStyle(headerStyle), ...backgroundStyle(headerStyle) }}>
+                {t("stations.records.result")}
+              </TableHead>
+              {keys.map((k) => (
+                <TableHead key={k} className={textClasses(headerStyle)} style={{ ...textColorStyle(headerStyle), ...backgroundStyle(headerStyle) }}>
+                  {k}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+        )}
+        <TableBody>
+          {records.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className={`whitespace-nowrap ${textClasses(cellStyle)}`} style={{ ...textColorStyle(cellStyle), ...backgroundStyle(cellStyle) }}>
+                {new Date(r.createdAt).toLocaleString(i18n.language)}
+              </TableCell>
+              <TableCell className={textClasses(cellStyle)} style={{ ...textColorStyle(cellStyle), ...backgroundStyle(cellStyle) }}>
+                {r.result === "OK" && <Badge variant="success">{t("stations.records.resultOk")}</Badge>}
+                {r.result === "NG" && <Badge variant="destructive">{t("stations.records.resultNg")}</Badge>}
+              </TableCell>
+              {keys.map((k) => (
+                <TableCell key={k} className={textClasses(cellStyle)} style={{ ...textColorStyle(cellStyle), ...backgroundStyle(cellStyle) }}>
+                  {String(r.capturedData[k + HISTORY_LABEL_SUFFIX] ?? r.capturedData[k] ?? "")}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -817,6 +953,9 @@ function WidgetTable({
   if (error) return <p className="text-xs text-destructive">{t("stations.runtime.loadOptionsError")}</p>;
   if (!table) return <p className="text-xs text-muted-foreground">{t("masterData.loading")}</p>;
 
+  const configuredColumns = (widget.config.columns as string[] | undefined) ?? [];
+  const visibleColumns = configuredColumns.length > 0 ? table.columns.filter((c) => configuredColumns.includes(c.key)) : table.columns;
+
   const selectedSet = new Set(
     selectionMode === "MULTI" ? ((value as string[]) ?? []) : value != null ? [String(value)] : [],
   );
@@ -841,7 +980,7 @@ function WidgetTable({
         <TableHeader>
           <TableRow>
             {selectable && <TableHead className="w-8" />}
-            {table.columns.map((c) => (
+            {visibleColumns.map((c) => (
               <TableHead key={c.key} className={textClasses(headerStyle)} style={{ ...textColorStyle(headerStyle), ...backgroundStyle(headerStyle) }}>
                 {t(c.labelKey, { defaultValue: c.key })}
               </TableHead>
@@ -865,7 +1004,7 @@ function WidgetTable({
                     <Checkbox checked={checked} aria-label="select" />
                   </TableCell>
                 )}
-                {table.columns.map((c) => (
+                {visibleColumns.map((c) => (
                   <TableCell key={c.key} className={textClasses(cellStyle)} style={{ ...textColorStyle(cellStyle), ...backgroundStyle(cellStyle) }}>
                     {cellText(row[c.key])}
                   </TableCell>

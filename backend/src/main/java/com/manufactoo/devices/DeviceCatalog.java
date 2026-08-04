@@ -42,7 +42,17 @@ public final class DeviceCatalog {
             DeviceFieldDef.select("flowControl", true, List.of("NONE", "RTS_CTS", "XON_XOFF")),
             DeviceFieldDef.select("lineEnding", true, List.of("NONE", "CR", "LF", "CRLF")),
             DeviceFieldDef.select("encoding", true, List.of("UTF8", "ASCII", "LATIN1")),
-            DeviceFieldDef.number("timeoutMs", false, "3000")
+            DeviceFieldDef.number("timeoutMs", false, "3000"),
+            // Opcional: algunas maquinas (p. ej. basculas RS232) no mandan el dato
+            // limpio, sino una linea compuesta con flags de protocolo alrededor
+            // (p. ej. "ST,GS    0.00 g" = estable, peso bruto, valor, unidad). Si se
+            // rellena, el Player aplica esta regex a cada linea ANTES de mandarla al
+            // widget: usa el primer grupo de captura si el patron tiene uno, o toda
+            // la coincidencia si no -- y si no hay coincidencia, se manda la linea tal
+            // cual (fail-open, igual que el resto del catalogo). Solo aplica a RS232:
+            // un scanner de codigo de barras usa SERIAL_FIELDS_BARCODE, sin este campo,
+            // porque su dato ya sale limpio.
+            DeviceFieldDef.text("valuePattern", false, "[-+]?\\d+(?:\\.\\d+)?")
     );
 
     /** Igual que SERIAL_FIELDS_FULL pero sin "encoding": un scanner de barras siempre emite ASCII simple. */

@@ -79,7 +79,15 @@ public final class WidgetCatalog {
                     List.of(
                             WidgetFieldDef.text("text", false, ""),
                             WidgetFieldDef.checkbox("showDateTime"),
-                            WidgetFieldDef.text("dateTimeFormat", false, "dd/MM/yyyy HH:mm:ss"))),
+                            WidgetFieldDef.text("dateTimeFormat", false, "dd/MM/yyyy HH:mm:ss"),
+                            // Mismo patron que showDateTime: un "contenido especial" en vez de
+                            // texto tecleado, siempre en vivo (si se renombra la estacion o la
+                            // pantalla, el LABEL no queda desincronizado como pasaria si se
+                            // copiara el nombre a mano). Ver conversacion 2026-08-03: antes el
+                            // runtime imponia el nombre de estacion/pantalla fijo arriba, sin
+                            // poder moverlo, ocultarlo ni darle estilo -- ahora es un LABEL mas.
+                            WidgetFieldDef.checkbox("showStationName"),
+                            WidgetFieldDef.checkbox("showScreenTitle"))),
             new WidgetDescriptor(
                     WidgetType.IMAGE.name(), WidgetCategory.DISPLAY, false, false,
                     List.of(WidgetFieldDef.select("fit", false, List.of("CONTAIN", "COVER")))),
@@ -118,7 +126,14 @@ public final class WidgetCatalog {
                     // usa el mismo config.styles.panel.backgroundColor que cualquier
                     // otro widget -- ver WIDGET_STYLE_PARTS en WidgetView.tsx.
                     WidgetType.PANEL.name(), WidgetCategory.DISPLAY, false, false,
-                    List.of())
+                    List.of()),
+            new WidgetDescriptor(
+                    // Puramente informativo: lee station_trace_records de ESTA estacion
+                    // (no un DataSourceType, no es dato Odoo) -- sin binding (no rellena
+                    // el formulario) ni origen de datos propio. maxRows limita cuantos
+                    // registros recientes trae (mismo patron que TABLE.maxRows).
+                    WidgetType.STATION_HISTORY.name(), WidgetCategory.DISPLAY, false, false,
+                    List.of(WidgetFieldDef.number("maxRows", false, "10")))
     );
 
     public static List<WidgetDescriptor> widgets() {

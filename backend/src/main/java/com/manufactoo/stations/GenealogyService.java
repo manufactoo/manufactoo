@@ -3,8 +3,11 @@ package com.manufactoo.stations;
 import com.manufactoo.apps.AppService;
 import com.manufactoo.apps.TraceabilityGenealogyApp;
 import com.manufactoo.common.Messages;
+import com.manufactoo.stations.dto.GenealogyRecentPageDto;
 import com.manufactoo.stations.dto.GenealogySearchResultDto;
 import com.manufactoo.stations.dto.GenealogyStepDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +54,23 @@ public class GenealogyService {
         this.dataSourceResolver = dataSourceResolver;
         this.appService = appService;
         this.messages = messages;
+    }
+
+    /**
+     * Pagina de los registros de trazabilidad mas recientes de TODA la app
+     * (cualquier estacion), mas recientes primero -- para poder explorar la
+     * genealogia sin tener que saber ya un codigo de antemano (ver
+     * conversacion 2026-08-02). page es 0-based; size se acota a [1,100] para
+     * que un valor absurdo no dispare una consulta desproporcionada.
+     */
+    public GenealogyRecentPageDto listRecent(int page, int size) {
+        requireAppInstalled();
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Map<Long, String> stationNames = stationNames();
+        Page<StationTraceRecord> result = traceRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage, safeSize));
+        List<GenealogyStepDto> items = result.getContent().stream().map(r -> toStepDto(r, stationNames)).toList();
+        return new GenealogyRecentPageDto(items, safePage, safeSize, result.getTotalElements());
     }
 
     /** Busca un codigo y devuelve su recorrido en ambas direcciones a la vez. */
@@ -101,7 +121,30 @@ public class GenealogyService {
     private GenealogyStepDto toStepDto(StationTraceRecord r, Map<Long, String> stationNames) {
         return new GenealogyStepDto(r.getId(), r.getStationId(),
                 stationNames.getOrDefault(r.getStationId(), String.valueOf(r.getStationId())),
-                r.getCreatedAt(), r.getCapturedData());
+                r.getCreatedAt(), r.getCapturedData(), identifierValue(r));
+    }
+
+    /**
+     * El codigo humano-legible de su identificador de ruta en el momento de
+     * guardarse, o null si no tenia ninguno aplicado. Prefiere SIEMPRE
+     * "<key>__label" sobre "<key>" -- para un identificador capturado por un
+     * DROPDOWN, el valor crudo es el id interno de Odoo (p. ej. "5"), no un
+     * codigo real de Odoo, y buscarByCode con ese id fallaria (lookupSerial
+     * espera el codigo, no el id). "__label" es siempre el texto legible ya
+     * resuelto (p. ej. "0000005"), el mismo dato que un TEXT_INPUT valida
+     * directamente sin desplegable -- valido en ambos casos para reutilizarlo
+     * como codigo de busqueda con un clic (ver GenealogyPage "recientes").
+     */
+    private String identifierValue(StationTraceRecord r) {
+        return r.getRouteIdentifierKeys().stream()
+                .map(key -> {
+                    Object label = r.getCapturedData().get(key + "__label");
+                    return label != null ? label : r.getCapturedData().get(key);
+                })
+                .filter(v -> v != null && !String.valueOf(v).isBlank())
+                .map(String::valueOf)
+                .findFirst()
+                .orElse(null);
     }
 
     private Map<Long, String> stationNames() {

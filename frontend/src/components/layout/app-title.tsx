@@ -27,9 +27,13 @@ export function AppTitle() {
       <SidebarMenuItem>
         <SidebarMenuButton size="lg" className="gap-0 py-0 hover:bg-transparent active:bg-transparent" asChild>
           <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
-            <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <div
+              className={`flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg ${
+                logoUrl ? "" : "bg-sidebar-primary text-sidebar-primary-foreground"
+              }`}
+            >
               {logoUrl ? (
-                <img src={logoUrl} alt={displayName} className="size-full object-cover" />
+                <img src={logoUrl} alt={displayName} className="size-full object-contain" />
               ) : (
                 <IconStack2 className="size-4" />
               )}

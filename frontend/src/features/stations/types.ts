@@ -154,12 +154,22 @@ export interface GenealogyStep {
   stationName: string;
   createdAt: string;
   capturedData: Record<string, unknown>;
+  /** Valor de su identificador de ruta en ese momento, o null si no tenia ninguno aplicado. */
+  identifierValue: string | null;
 }
 
 /** Resultado de buscar un codigo en ambas direcciones a la vez -- ver GenealogyPage. */
 export interface GenealogySearchResult {
   asUnit: GenealogyStep[];
   asMaterial: GenealogyStep[];
+}
+
+/** Pagina de los registros de trazabilidad mas recientes de toda la app -- ver GenealogyPage. */
+export interface GenealogyRecentPage {
+  items: GenealogyStep[];
+  page: number;
+  size: number;
+  totalItems: number;
 }
 
 export interface Player {

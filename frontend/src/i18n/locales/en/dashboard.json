@@ -67,7 +67,8 @@
       "host": "Host / IP",
       "vendorId": "Vendor ID",
       "productId": "Product ID",
-      "queue": "Print queue"
+      "queue": "Print queue",
+      "valuePattern": "Value pattern (regex, optional). Applied to each line before sending it to the field: uses the first capture group if it has one, otherwise the whole match. Empty = the line is sent as-is."
     },
     "fieldOptions": {
       "parity": {
@@ -219,6 +220,8 @@
       "noDataSource": "None (free text)",
       "labelColumns": "Display as",
       "labelColumnsHint": "Which column(s) are shown in each dropdown option. With none chosen, the name is used. Choosing several combines them in the same order.",
+      "tableColumns": "Columns to show",
+      "tableColumnsHint": "Which table columns are shown. With none chosen, all columns show automatically.",
       "filterByStationRoute": "Only orders whose product has a route through this station",
       "filterByStationRouteHint": "Looks at each order's product: if it has an enabled route that passes through this station, it's shown; otherwise it's hidden. If no route includes this station, or one doesn't set a product (applies to any), all orders are shown anyway.",
       "textInputDataSourceHint": "Optional: first pick which Odoo master data the value comes from (e.g. Operators), then which data gets typed (e.g. employee code). To show a field from the matched record (name, department...) add a Label and link it to this field.",
@@ -229,10 +232,14 @@
       "boundFieldHint": "Which data of the linked widget to show: the raw value, or (if it comes from Odoo master data) one of its fields.",
       "boundFieldValue": "The entered/selected value",
       "showDateTime": "Show current date and time",
+      "showStationName": "Show station name",
+      "showScreenTitle": "Show current screen title",
       "dateTimeFormat": "Date and time format",
       "dateTimeFormatHint": "date-fns format, e.g. dd/MM/yyyy HH:mm:ss. Updates every second in the runtime.",
       "detailPreviewValue": "Example",
       "stationMaterialsPreview": "Informational only: list of lots/serials active in the station. Loaded from the Materials button.",
+      "historyColumns": "Columns to show",
+      "historyColumnsHint": "Which of this station's captured fields show in the history. With none chosen, all of them show automatically.",
       "staticOptions": "Options (one per line: value|label)",
       "position": "Position and size",
       "x": "Column (X)",
@@ -250,7 +257,8 @@
       "TABLE": "Table",
       "BUTTON": "Button",
       "STATION_MATERIALS": "Station materials",
-      "PANEL": "Panel"
+      "PANEL": "Panel",
+      "STATION_HISTORY": "Station history"
     },
     "dataSources": {
       "STATIC_LIST": "Static list",
@@ -337,6 +345,7 @@
       "back": "Back",
       "prev": "Back",
       "next": "Next",
+      "statusIdle": "No issues",
       "emptyScreen": "This screen has no widgets yet.",
       "scanPlaceholder": "Scan or paste the code and press Enter",
       "scanNotFound": "{{field}}: no record found with code \"{{code}}\".",
@@ -393,6 +402,14 @@
     "asMaterial": {
       "title": "Used as material in",
       "empty": "This code has not been used as material at any station."
+    },
+    "recent": {
+      "title": "Recent records",
+      "total": "{{count}} total",
+      "empty": "No traceability records yet.",
+      "identifier": "Identifier",
+      "page": "Page {{page}} of {{totalPages}}",
+      "back": "Back to recent"
     }
   },
   "masterData": {

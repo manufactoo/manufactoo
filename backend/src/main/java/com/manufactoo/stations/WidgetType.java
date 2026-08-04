@@ -39,5 +39,13 @@ public enum WidgetType {
      * independiente en la misma rejilla plana de la pantalla (ver
      * conversacion 2026-08-01). Se renderiza siempre detras del resto.
      */
-    PANEL
+    PANEL,
+    /**
+     * Ultimos registros de trazabilidad de ESTA estacion (station_trace_records),
+     * no un origen de datos Odoo -- puramente informativo para que el operario
+     * vea sobre la marcha lo ultimo que ha pasado por su puesto, sin salir a la
+     * pagina de Registros. No requiere binding ni origen de datos propio (ver
+     * conversacion 2026-08-02).
+     */
+    STATION_HISTORY
 }
