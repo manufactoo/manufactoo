@@ -14,6 +14,8 @@ public record UpsertStationRequest(
         @NotBlank String name,
         String description,
         boolean enabled,
+        Long odooWorkcenterId,
+        String odooWorkcenterName,
         List<UpsertScreen> screens,
         List<String> positions
 ) {

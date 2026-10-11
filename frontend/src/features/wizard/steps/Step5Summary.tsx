@@ -25,7 +25,6 @@ export function Step5Summary() {
     try {
       const { data } = await apiClient.post("/api/wizard/complete", {
         language: wizard.language,
-        odooVersion: wizard.odooVersion,
         external: wizard.external,
         companyName: wizard.companyName,
         companySector: wizard.companySector || null,

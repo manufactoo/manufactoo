@@ -39,4 +39,17 @@ public interface OdooConnector {
      */
     List<Map<String, Object>> listMasterData(OdooMasterDataEntity entity, String database, int uid,
                                               String apiKeyOrPassword, int limit, int offset);
+
+    /**
+     * Llamada generica a CUALQUIER metodo de CUALQUIER modelo de Odoo (via
+     * execute_kw) -- a diferencia de listMasterData (solo lectura, catalogo
+     * fijo de entidades), esto es el primitivo que usa OdooShopFloorService
+     * para escribir de verdad en Odoo (botones button_start/button_pending/
+     * button_finish/button_unblock de mrp.workorder, altas de
+     * mrp.workcenter.productivity, etc. -- ver conversacion 2026-08-05,
+     * investigacion en vivo). El resultado se devuelve tal cual lo convierte
+     * Jackson (Boolean para los botones, Map/List<Map> para read/search_read).
+     */
+    Object callMethod(String database, int uid, String apiKeyOrPassword, String model, String method,
+                       List<Object> args, Map<String, Object> kwargs);
 }

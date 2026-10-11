@@ -19,6 +19,12 @@ function applyTheme(theme: ThemeMode) {
   const isDark =
     theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", isDark);
+  // El favicon no vive en el DOM que Tailwind puede alternar con la variante
+  // dark: (ver WizardPage.tsx) -- se cambia a mano aqui, en el mismo sitio que
+  // decide isDark, para que respete igual el tema elegido por el usuario.
+  document
+    .getElementById("app-favicon")
+    ?.setAttribute("href", isDark ? "/manufactoo-logo-dark.png" : "/manufactoo-logo.png");
 }
 
 function applyAccent(color: AccentColor) {

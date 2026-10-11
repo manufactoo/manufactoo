@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiClient } from "@/lib/api-client";
-import type { Station } from "./types";
+import { IDENTIFIER_BINDING_KEY, type Station } from "./types";
 
 interface RouteStep {
   id?: number;
@@ -61,11 +61,15 @@ export function RoutesTab() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [productId, setProductId] = React.useState<string>("none");
-  const [identifierBindingKey, setIdentifierBindingKey] = React.useState("serial");
   const [enabled, setEnabled] = React.useState(true);
   const [steps, setSteps] = React.useState<(RouteStep & { _uid: number })[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Aviso informativo del atajo "Rellenar desde las operaciones de Odoo"
+  // (ver fillFromOdoo) -- distinto de "error": no impide guardar, solo
+  // explica que alguna operacion se dejo fuera por no tener estacion
+  // asociada a su Work Center.
+  const [fillInfo, setFillInfo] = React.useState<string | null>(null);
 
   const load = React.useCallback(() => {
     apiClient.get<Route[]>("/api/routes").then(({ data }) => setRoutes(data)).catch(() => setRoutes([]));
@@ -85,10 +89,10 @@ export function RoutesTab() {
     setName("");
     setDescription("");
     setProductId("none");
-    setIdentifierBindingKey("serial");
     setEnabled(true);
     setSteps([]);
     setError(null);
+    setFillInfo(null);
     setDialogOpen(true);
   }
 
@@ -97,11 +101,52 @@ export function RoutesTab() {
     setName(route.name);
     setDescription(route.description);
     setProductId(route.productId ? String(route.productId) : "none");
-    setIdentifierBindingKey(route.identifierBindingKey);
     setEnabled(route.enabled);
     setSteps(route.steps.map((s) => ({ ...s, _uid: stepUid() })));
     setError(null);
+    setFillInfo(null);
     setDialogOpen(true);
+  }
+
+  /**
+   * Atajo "Rellenar desde las operaciones de Odoo" (ver conversacion
+   * 2026-08-04): en vez de que el usuario copie a mano la secuencia que ya
+   * definio en el routing del BOM de Odoo, se lee esa secuencia real y se
+   * propone -- casando cada operacion con la estacion cuyo Work Center
+   * coincide. Solo tiene sentido para arrancar una ruta desde cero (el
+   * boton que lo llama solo se muestra con steps.length===0, ver JSX), asi
+   * que aqui simplemente sustituye el array de pasos, sin intentar fusionar
+   * con nada existente.
+   */
+  async function fillFromOdoo() {
+    if (productId === "none") return;
+    setError(null);
+    setFillInfo(null);
+    try {
+      const { data: operations } = await apiClient.get<
+        { name: string; workcenterId: number | null; workcenterName: string | null }[]
+      >("/api/routes/odoo-operations", { params: { productId } });
+      if (operations.length === 0) {
+        setFillInfo(t("stations.routes.fillNoOperations"));
+        return;
+      }
+      const newSteps: (RouteStep & { _uid: number })[] = [];
+      let skipped = 0;
+      for (const op of operations) {
+        const candidate = op.workcenterId != null ? stations.find((s) => s.odooWorkcenterId === op.workcenterId) : undefined;
+        if (!candidate) {
+          skipped += 1;
+          continue;
+        }
+        newSteps.push({ _uid: stepUid(), stationId: candidate.id, orderIndex: newSteps.length, name: op.name });
+      }
+      setSteps(newSteps);
+      if (skipped > 0) {
+        setFillInfo(t("stations.routes.fillSkipped", { count: skipped }));
+      }
+    } catch {
+      setError(t("stations.routes.fillError"));
+    }
   }
 
   function addStep() {
@@ -145,7 +190,7 @@ export function RoutesTab() {
         description,
         productId: product?.id ?? null,
         productName: product?.display_name ?? null,
-        identifierBindingKey,
+        identifierBindingKey: IDENTIFIER_BINDING_KEY,
         enabled,
         steps: steps.map((s, i) => ({ id: s.id ?? null, stationId: s.stationId, orderIndex: i, name: s.name })),
       };
@@ -189,7 +234,6 @@ export function RoutesTab() {
                 <TableRow>
                   <TableHead>{t("stations.routes.name")}</TableHead>
                   <TableHead>{t("stations.routes.product")}</TableHead>
-                  <TableHead>{t("stations.routes.identifierKey")}</TableHead>
                   <TableHead>{t("stations.routes.steps")}</TableHead>
                   <TableHead>{t("stations.enabled")}</TableHead>
                   <TableHead />
@@ -200,9 +244,6 @@ export function RoutesTab() {
                   <TableRow key={route.id}>
                     <TableCell className="font-medium">{route.name}</TableCell>
                     <TableCell className="text-muted-foreground">{route.productName ?? "—"}</TableCell>
-                    <TableCell>
-                      <code className="text-xs">{route.identifierBindingKey}</code>
-                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {route.steps.map((s) => s.stationName ?? s.stationId).join(" → ")}
                     </TableCell>
@@ -240,7 +281,13 @@ export function RoutesTab() {
               </div>
               <div className="space-y-2">
                 <Label>{t("stations.routes.product")}</Label>
-                <Select value={productId} onValueChange={setProductId}>
+                <Select
+                  value={productId}
+                  onValueChange={(v) => {
+                    setProductId(v);
+                    setFillInfo(null);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -261,18 +308,6 @@ export function RoutesTab() {
               <Textarea id="route-description" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="route-identifier">{t("stations.routes.identifierKey")}</Label>
-              <Input
-                id="route-identifier"
-                value={identifierBindingKey}
-                onChange={(e) => setIdentifierBindingKey(e.target.value)}
-                placeholder="serial"
-                required
-              />
-              <p className="text-[11px] text-muted-foreground">{t("stations.routes.identifierKeyHint")}</p>
-            </div>
-
             <div className="flex items-center gap-2">
               <Checkbox id="route-enabled" checked={enabled} onCheckedChange={(v) => setEnabled(v === true)} />
               <Label htmlFor="route-enabled">{t("stations.enabled")}</Label>
@@ -281,14 +316,22 @@ export function RoutesTab() {
             <div className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-between">
                 <Label>{t("stations.routes.steps")}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addStep}>
-                  <IconPlus className="mr-1 size-4" />
-                  {t("stations.routes.addStep")}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {productId !== "none" && steps.length === 0 && (
+                    <Button type="button" variant="outline" size="sm" onClick={fillFromOdoo}>
+                      {t("stations.routes.fillFromOdoo")}
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={addStep}>
+                    <IconPlus className="mr-1 size-4" />
+                    {t("stations.routes.addStep")}
+                  </Button>
+                </div>
               </div>
               {steps.length === 0 && (
                 <p className="text-xs text-muted-foreground">{t("stations.routes.noSteps")}</p>
               )}
+              {fillInfo && <p className="text-xs text-muted-foreground">{fillInfo}</p>}
               <div className="space-y-2">
                 {steps.map((step, i) => (
                   <div key={step._uid} className="flex items-center gap-2">

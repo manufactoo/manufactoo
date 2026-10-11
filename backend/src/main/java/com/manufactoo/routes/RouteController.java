@@ -1,7 +1,9 @@
 package com.manufactoo.routes;
 
 import com.manufactoo.routes.dto.RouteDto;
+import com.manufactoo.routes.dto.RouteOperationSuggestionDto;
 import com.manufactoo.routes.dto.UpsertRouteRequest;
+import com.manufactoo.stations.DataSourceResolver;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +14,25 @@ import java.util.List;
 public class RouteController {
 
     private final RouteService service;
+    // Inyectado directo (no via RouteService) para no crear una dependencia
+    // circular: DataSourceResolver ya depende de RouteService (para filtrar
+    // ordenes de fabricacion por ruta -- ver filterByRouteProducts), asi que
+    // RouteService no puede depender de DataSourceResolver a su vez.
+    private final DataSourceResolver dataSourceResolver;
 
-    public RouteController(RouteService service) {
+    public RouteController(RouteService service, DataSourceResolver dataSourceResolver) {
         this.service = service;
+        this.dataSourceResolver = dataSourceResolver;
+    }
+
+    /**
+     * Operaciones de la ruta de Odoo de un producto, para el atajo "Rellenar
+     * desde las operaciones de Odoo" del formulario de Rutas (ver
+     * DataSourceResolver.resolveRouteOperations).
+     */
+    @GetMapping("/odoo-operations")
+    public List<RouteOperationSuggestionDto> odooOperations(@RequestParam Long productId) {
+        return dataSourceResolver.resolveRouteOperations(productId);
     }
 
     @GetMapping

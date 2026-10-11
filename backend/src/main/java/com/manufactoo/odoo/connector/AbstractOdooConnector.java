@@ -59,6 +59,10 @@ public abstract class AbstractOdooConnector implements OdooConnector {
             case MANUFACTURING_ORDER -> "mrp.production";
             case OPERATOR -> "hr.employee";
             case SERIAL -> "stock.lot";
+            case WORKCENTER -> "mrp.workcenter";
+            case WORKORDER -> "mrp.workorder";
+            case OPERATION -> "mrp.routing.workcenter";
+            case LOSS_REASON -> "mrp.workcenter.productivity.loss";
         };
     }
 
@@ -69,12 +73,27 @@ public abstract class AbstractOdooConnector implements OdooConnector {
      */
     protected List<String> odooFields(OdooMasterDataEntity entity) {
         return switch (entity) {
-            case PRODUCT -> List.of("id", "display_name", "default_code", "barcode", "qty_available", "uom_id");
+            case PRODUCT -> List.of("id", "display_name", "default_code", "barcode", "qty_available", "uom_id", "product_tmpl_id", "image_128");
             case BOM -> List.of("id", "display_name", "product_tmpl_id", "product_qty", "type", "code");
-            case MANUFACTURING_ORDER -> List.of("id", "display_name", "product_id", "product_qty", "state",
-                    "date_start", "date_finished");
-            case OPERATOR -> List.of("id", "name", "job_title", "department_id", "work_email", "barcode");
+            case MANUFACTURING_ORDER -> List.of("id", "display_name", "product_id", "product_qty", "qty_producing",
+                    "state", "date_start", "date_finished");
+            // user_id: el res.users enlazado a este empleado (si tiene) -- lo
+            // necesita OdooShopFloorService.reattributeLastTimeLog para
+            // atribuir el tiempo trabajado al operario real, no a la cuenta
+            // de integracion de Manufactoo (ver conversacion 2026-08-05).
+            case OPERATOR -> List.of("id", "name", "job_title", "department_id", "work_email", "barcode", "user_id", "image_128");
             case SERIAL -> List.of("id", "name", "product_id", "ref");
+            case WORKCENTER -> List.of("id", "name", "code");
+            case WORKORDER -> List.of("id", "name", "workcenter_id", "operation_id", "production_id", "state",
+                    "qty_producing", "qty_remaining", "duration_expected");
+            // bom_id + sequence: solo se usan para reconstruir la ruta ordenada de un
+            // producto (ver DataSourceResolver.resolveRouteOperations), no se
+            // mostraban antes porque nada los necesitaba.
+            case OPERATION -> List.of("id", "name", "workcenter_id", "bom_id", "sequence");
+            // manual: solo los motivos que un operario puede elegir a mano
+            // (los no-manuales son de uso interno de Odoo) -- se filtra en
+            // DataSourceResolver, no aqui, mismo criterio que otros filtros.
+            case LOSS_REASON -> List.of("id", "name", "loss_type", "manual");
         };
     }
 
@@ -88,5 +107,17 @@ public abstract class AbstractOdooConnector implements OdooConnector {
         ));
         return objectMapper.convertValue(result, new TypeReference<List<Map<String, Object>>>() {
         });
+    }
+
+    @Override
+    public Object callMethod(String database, int uid, String apiKeyOrPassword, String model, String method,
+                              List<Object> args, Map<String, Object> kwargs) {
+        JsonNode result = rpcClient.call("object", "execute_kw", List.of(
+                database, uid, apiKeyOrPassword,
+                model, method,
+                args,
+                kwargs == null ? Map.of() : kwargs
+        ));
+        return objectMapper.convertValue(result, Object.class);
     }
 }

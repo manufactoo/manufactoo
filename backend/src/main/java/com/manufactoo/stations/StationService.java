@@ -44,12 +44,16 @@ public class StationService {
     private final RouteService routeService;
     private final MaterialLoadService materialLoadService;
     private final TraceRecordMaterialRepository traceRecordMaterialRepository;
+    private final WorkOrderSessionService workOrderSessionService;
+    private final OdooProductionService productionService;
     private final Messages messages;
 
     public StationService(StationRepository repository, StationTraceRecordRepository traceRepository,
                           StationAssetRepository assetRepository, DataSourceResolver dataSourceResolver,
                           AppService appService, RouteService routeService, MaterialLoadService materialLoadService,
-                          TraceRecordMaterialRepository traceRecordMaterialRepository, Messages messages) {
+                          TraceRecordMaterialRepository traceRecordMaterialRepository,
+                          WorkOrderSessionService workOrderSessionService, OdooProductionService productionService,
+                          Messages messages) {
         this.repository = repository;
         this.traceRepository = traceRepository;
         this.assetRepository = assetRepository;
@@ -58,6 +62,8 @@ public class StationService {
         this.routeService = routeService;
         this.materialLoadService = materialLoadService;
         this.traceRecordMaterialRepository = traceRecordMaterialRepository;
+        this.workOrderSessionService = workOrderSessionService;
+        this.productionService = productionService;
         this.messages = messages;
     }
 
@@ -73,6 +79,12 @@ public class StationService {
         return dataSourceResolver.resolve(type, limit, stationId);
     }
 
+    /** Igual, pero admite ademas operationId para ODOO_WORKORDERS (ver DataSourceResolver.resolve con operationId). */
+    public List<DataSourceOption> resolveDataSource(DataSourceType type, int limit, Long stationId, Long operationId) {
+        requireAppInstalled();
+        return dataSourceResolver.resolve(type, limit, stationId, operationId);
+    }
+
     /** Filas + columnas de un origen de datos, para el widget TABLE. */
     public DataSourceTableDto resolveDataSourceTable(DataSourceType type, int limit) {
         requireAppInstalled();
@@ -83,6 +95,18 @@ public class StationService {
     public DataSourceTableDto resolveDataSourceTable(DataSourceType type, int limit, Long stationId) {
         requireAppInstalled();
         return dataSourceResolver.resolveTable(type, limit, stationId);
+    }
+
+    /** Igual, pero admite ademas operationId para ODOO_WORKORDERS (ver DataSourceResolver.resolveTable con operationId). */
+    public DataSourceTableDto resolveDataSourceTable(DataSourceType type, int limit, Long stationId, Long operationId) {
+        requireAppInstalled();
+        return dataSourceResolver.resolveTable(type, limit, stationId, operationId);
+    }
+
+    /** Operaciones de un Work Center concreto, para el picker "Estrechar a una operacion" del widget TABLE. */
+    public List<DataSourceOption> resolveOperations(Long workcenterId) {
+        requireAppInstalled();
+        return dataSourceResolver.resolveOperations(workcenterId);
     }
 
     /**
@@ -233,7 +257,7 @@ public class StationService {
         List<StationMaterialLoad> materialLoads = mergeActiveMaterialLoads(station, values);
         validateSubmission(station, request.screenId(), values);
         normalizeDataSourceValues(station, values);
-        Set<String> routeIdentifierKeys = validateRouteSequence(station, values);
+        Set<String> routeIdentifierKeys = resolveIdentifierKeys(station, values);
 
         StationTraceRecord record = new StationTraceRecord();
         record.setStationId(stationId);
@@ -248,6 +272,44 @@ public class StationService {
             link.setTraceRecordId(record.getId());
             link.setMaterialLoadId(load.getId());
             traceRecordMaterialRepository.save(link);
+        }
+
+        // Cuenta esta unidad hacia la cantidad producida del Work Order activo
+        // de la estacion (si hay alguno) -- independiente de si la estacion usa
+        // Ruta o no, y solo si el resultado no es NG (ver conversacion
+        // 2026-08-05: antes "unidad producida" solo se movia si el operario lo
+        // tecleaba a mano en el widget de Work Order, sin relacion con lo que
+        // de verdad paso por la estacion). No hace nada si no hay sesion activa.
+        if (!"NG".equals(record.getResult())) {
+            workOrderSessionService.incrementQtyForStation(stationId);
+        }
+
+        // Descuenta produccion REAL en Odoo (stock.move + mrp.production, sin
+        // backorder, ver OdooProductionService) si esta estacion tiene una
+        // tabla marcada como "decide la orden de fabricacion" (config.boundTo
+        // fijo PRODUCTION_MO_BINDING_KEY) con una fila elegida, el resultado
+        // no es NG, y esta unidad ya no tiene pasos de Ruta pendientes (ultimo
+        // paso de todas las rutas que le apliquen, o ninguna ruta le aplica --
+        // ver isLastRouteStepOrStandalone). Estricto: si Odoo falla aqui, la
+        // excepcion revierte toda la transaccion, no se guarda nada de lo
+        // anterior tampoco (ver conversacion 2026-08-06).
+        // <p>
+        // lotCode se pasa TAL CUAL, aunque venga null/vacio -- aqui no sabemos
+        // si el producto de la MO elegida lleva seguimiento por lote/serie en
+        // Odoo (eso exige una llamada a Odoo que ya hace recordUnit), asi que
+        // ya no se exige un identificador a ciegas: recordUnit consulta el
+        // tracking real del producto y decide si hace falta o no, y si hace
+        // falta ademas comprueba que el lote pertenezca a ese mismo producto
+        // (ver conversacion 2026-08-08: antes se aceptaba cualquier lote de
+        // cualquier producto sin comprobar nada).
+        Object productionMoValue = values.get(PRODUCTION_MO_BINDING_KEY);
+        if (productionMoValue != null && !productionMoValue.toString().isBlank()
+                && !"NG".equals(record.getResult())
+                && isLastRouteStepOrStandalone(station, values)) {
+            Object idLabel = values.get(IDENTIFIER_BINDING_KEY + "__label");
+            Object idValue = values.get(IDENTIFIER_BINDING_KEY);
+            String lotCode = idLabel != null ? idLabel.toString() : (idValue != null ? idValue.toString() : null);
+            productionService.recordUnit(Long.valueOf(productionMoValue.toString()), lotCode);
         }
 
         return record.getId();
@@ -279,6 +341,8 @@ public class StationService {
         station.setName(request.name());
         station.setDescription(request.description() != null ? request.description() : "");
         station.setEnabled(request.enabled());
+        station.setOdooWorkcenterId(request.odooWorkcenterId());
+        station.setOdooWorkcenterName(request.odooWorkcenterId() != null ? request.odooWorkcenterName() : null);
         station.setPositions(normalizePositions(request.positions()));
 
         List<UpsertScreen> incoming = request.screens() != null ? request.screens() : List.of();
@@ -381,6 +445,12 @@ public class StationService {
                 if (WidgetType.LABEL.name().equals(w.widgetType())) {
                     validateLabelBinding(w, allBindingKeys);
                 }
+                if (WidgetType.IMAGE.name().equals(w.widgetType())) {
+                    validateImageBinding(w, allBindingKeys);
+                }
+                if (WidgetType.WORKORDER_ACTIONS.name().equals(w.widgetType())) {
+                    validateWorkorderActionsBinding(w, allBindingKeys);
+                }
                 if (descriptor.supportsDataSource()) {
                     Object dsType = w.dataSource() != null ? w.dataSource().get("type") : null;
                     boolean blank = dsType == null || dsType.toString().isBlank();
@@ -479,28 +549,58 @@ public class StationService {
     }
 
     /**
-     * Impide saltarse pasos de una ruta de fabricacion: por cada ruta habilitada
-     * que incluya esta estacion, si el envio trae el identificador de esa ruta
-     * (p. ej. "serial"), comprueba que TODOS los pasos anteriores ya tienen un
-     * registro de trazabilidad con ese mismo identificador Y con resultado
-     * distinto de NG -- un paso anterior marcado NG (ver StationTraceRecord.result)
-     * no cuenta como completado, exactamente igual que si no existiera, porque
-     * una pieza que fallo un paso no deberia poder seguir avanzando por la ruta
-     * normal (necesita repaso/desguace, no continuar como si nada). Un registro
-     * sin resultado (result=null, la estacion no usa el concepto OK/NG) SI
-     * cuenta como completado, igual que siempre -- solo un NG explicito bloquea.
-     * Si el envio no trae el identificador de una ruta dada, esa ruta
-     * simplemente no aplica a esta unidad (una misma estacion puede compartirse
-     * entre varias rutas/productos).
-     * <p>
-     * Devuelve las claves de identificador que SI aplicaron a este envio (una
-     * ruta puede no aplicar si el envio no trae su clave) -- submitRecord las
-     * anota en el propio registro (StationTraceRecord.routeIdentifierKeys)
-     * para que la Genealogia pueda agrupar unidades sin depender de la
-     * configuracion actual de la ruta, que puede cambiar mas adelante.
+     * Clave fija del campo marcado "Es el identificador de esta estacion" en
+     * el diseñador (ver StationBuilderPage.tsx, misma constante del lado
+     * frontend). Antes del 2026-08-06, que un campo contara como identificador
+     * para Genealogia dependia POR COMPLETO de que la estacion fuera paso de
+     * una Ruta habilitada -- el checkbox por si solo no hacia nada visible, lo
+     * cual era confuso (el propio texto del checkbox no lo insinuaba) y
+     * obligaba a montar una Ruta entera solo para que una estacion suelta de
+     * un unico paso apareciera en Genealogia. Ver resolveIdentifierKeys.
      */
-    private Set<String> validateRouteSequence(Station station, Map<String, Object> values) {
+    private static final String IDENTIFIER_BINDING_KEY = "identifier";
+
+    /**
+     * Clave fija del campo TABLE(ODOO_MANUFACTURING_ORDERS, SINGLE) marcado
+     * como "decide la orden de fabricacion a descontar" en el diseñador
+     * (mismo mecanismo que IDENTIFIER_BINDING_KEY: el checkbox fuerza el
+     * bindingKey del widget a esta constante). Ver StationBuilderPage.tsx.
+     */
+    private static final String PRODUCTION_MO_BINDING_KEY = "productionMo";
+
+    /**
+     * Determina que claves de identificador aplican a este envio, para
+     * anotarlas en el registro (StationTraceRecord.routeIdentifierKeys) y que
+     * Genealogia pueda encontrarlo. Dos fuentes, independientes entre si:
+     * <p>
+     * 1. El campo marcado "Es el identificador de esta estacion"
+     * (IDENTIFIER_BINDING_KEY): si el envio lo trae, cuenta SIEMPRE, tenga o
+     * no Ruta esta estacion -- es una propiedad de la propia estacion, no de
+     * ninguna ruta.
+     * <p>
+     * 2. Por cada Ruta habilitada que incluya esta estacion (soporte legado:
+     * rutas creadas antes del checkbox podian fijar una clave de identificador
+     * distinta de "identifier", asi que se sigue leyendo
+     * route.getIdentifierBindingKey() en vez de asumir la fija): si el envio
+     * trae el identificador de esa ruta, ademas de anotarlo, impide saltarse
+     * pasos -- comprueba que TODOS los pasos anteriores ya tienen un registro
+     * de trazabilidad con ese mismo identificador Y con resultado distinto de
+     * NG (un paso anterior marcado NG no cuenta como completado: una pieza
+     * que fallo un paso no deberia poder seguir avanzando por la ruta normal,
+     * necesita repaso/desguace). Un registro sin resultado (result=null, la
+     * estacion no usa el concepto OK/NG) SI cuenta como completado. Si el
+     * envio no trae el identificador de una ruta dada, esa ruta simplemente
+     * no aplica a esta unidad (una misma estacion puede compartirse entre
+     * varias rutas/productos).
+     */
+    private Set<String> resolveIdentifierKeys(Station station, Map<String, Object> values) {
         Set<String> appliedKeys = new LinkedHashSet<>();
+
+        Object identifierValue = values.get(IDENTIFIER_BINDING_KEY);
+        if (identifierValue != null && !identifierValue.toString().isBlank()) {
+            appliedKeys.add(IDENTIFIER_BINDING_KEY);
+        }
+
         Long stationId = station.getId();
         for (Route route : routeService.findEnabledRoutesForStation(stationId)) {
             String idKey = route.getIdentifierBindingKey();
@@ -541,10 +641,48 @@ public class StationService {
     }
 
     /**
+     * True si esta unidad ya no tiene ningun paso de Ruta pendiente en esta
+     * estacion -- o bien es el ULTIMO paso de TODAS las rutas habilitadas que
+     * le apliquen (usan el identificador fijo IDENTIFIER_BINDING_KEY, ver
+     * resolveIdentifierKeys), o bien ninguna ruta le aplica en absoluto (la
+     * estacion no esta en ninguna ruta, o esta pero el envio no trae
+     * "identifier"). Sin identificador no hay forma de saber a que unidad
+     * pertenece este envio en ninguna ruta, asi que se trata igual que "no
+     * aplica ninguna" -- es la misma logica de "fallar abierto" que ya usa
+     * resolveIdentifierKeys/filterByStationRoute en el resto del codigo.
+     * Usado solo para decidir si esta unidad ya puede descontar produccion
+     * real en Odoo (ver submitRecord) -- una unidad con pasos de ruta
+     * pendientes en OTRAS estaciones no debe descontarse todavia.
+     */
+    private boolean isLastRouteStepOrStandalone(Station station, Map<String, Object> values) {
+        Object idValue = values.get(IDENTIFIER_BINDING_KEY);
+        if (idValue == null || idValue.toString().isBlank()) {
+            return true;
+        }
+        Long stationId = station.getId();
+        List<Route> applicable = routeService.findEnabledRoutesForStation(stationId).stream()
+                .filter(r -> IDENTIFIER_BINDING_KEY.equals(r.getIdentifierBindingKey()))
+                .toList();
+        if (applicable.isEmpty()) {
+            return true;
+        }
+        return applicable.stream().allMatch(route -> {
+            List<RouteStep> steps = route.getSteps();
+            int currentOrder = steps.stream()
+                    .filter(s -> s.getStationId().equals(stationId))
+                    .mapToInt(RouteStep::getOrderIndex)
+                    .findFirst()
+                    .orElse(-1);
+            int maxOrder = steps.stream().mapToInt(RouteStep::getOrderIndex).max().orElse(-1);
+            return currentOrder >= 0 && currentOrder == maxOrder;
+        });
+    }
+
+    /**
      * Si esta estacion ya es un paso de alguna ruta habilitada, el identificador
      * de esa ruta (p. ej. "serial") tiene que seguir capturandose en algun
      * widget tras guardar -- si no, esa ruta dejaria de aplicarse en silencio
-     * (validateRouteSequence simplemente la salta cuando el envio no trae la
+     * (resolveIdentifierKeys simplemente la salta cuando el envio no trae la
      * clave) y el fallo no se notaria hasta produccion. Solo tiene sentido en
      * update: una estacion recien creada no puede ser todavia paso de ninguna
      * ruta (route_steps.station_id apunta a una estacion ya existente).
@@ -611,6 +749,49 @@ public class StationService {
         }
     }
 
+    /**
+     * Un IMAGE puede ser una imagen estatica subida (config.assetId) o estar
+     * vinculado a otro widget (config.boundTo/boundField) para mostrar un campo
+     * de imagen del registro seleccionado -- p. ej. image_128 de un producto
+     * u operario. El modo se guarda en config.imageSource ("STATIC" o "BOUND");
+     * si no esta, se asume "STATIC" para no romper diseños antiguos.
+     */
+    private void validateImageBinding(UpsertWidget w, Set<String> allBindingKeys) {
+        Object imageSource = w.config() != null ? w.config().get("imageSource") : null;
+        boolean isBound = "BOUND".equalsIgnoreCase(imageSource != null ? imageSource.toString() : "");
+        if (isBound) {
+            Object boundTo = w.config() != null ? w.config().get("boundTo") : null;
+            if (boundTo == null || boundTo.toString().isBlank()) {
+                throw badRequest(messages.get("station.image.needsBinding"));
+            }
+            if (!allBindingKeys.contains(boundTo.toString())) {
+                throw badRequest(messages.get("station.image.boundToMissing", boundTo));
+            }
+        } else {
+            Object assetId = w.config() != null ? w.config().get("assetId") : null;
+            boolean hasAsset = assetId != null && !assetId.toString().isBlank();
+            if (!hasAsset) {
+                throw badRequest(messages.get("station.image.needsSource"));
+            }
+        }
+    }
+
+    /**
+     * WORKORDER_ACTIONS necesita SIEMPRE una tabla de work orders vinculada
+     * (config.boundTo) -- a diferencia de LABEL no tiene alternativa de texto
+     * fijo: sin saber sobre que work order actuar, el widget no tendria nada
+     * que hacer (ver conversacion 2026-08-05).
+     */
+    private void validateWorkorderActionsBinding(UpsertWidget w, Set<String> allBindingKeys) {
+        Object boundTo = w.config() != null ? w.config().get("boundTo") : null;
+        if (boundTo == null || boundTo.toString().isBlank()) {
+            throw badRequest(messages.get("station.workorderActions.needsBoundTo"));
+        }
+        if (!allBindingKeys.contains(boundTo.toString())) {
+            throw badRequest(messages.get("station.workorderActions.boundToMissing", boundTo));
+        }
+    }
+
     private boolean isConfigFlagTrue(UpsertWidget w, String key) {
         Object value = w.config() != null ? w.config().get(key) : null;
         return value != null && Boolean.parseBoolean(value.toString());
@@ -632,7 +813,7 @@ public class StationService {
      * cliente. Y SUSTITUYE el codigo tecleado por el id resuelto: si no, la
      * misma unidad guardaria identidades distintas segun el tipo de widget que
      * la capturo en cada estacion (un DROPDOWN siempre guarda el id) y
-     * comparaciones como la de validateRouteSequence (o una genealogia futura)
+     * comparaciones como la de resolveIdentifierKeys (o una genealogia futura)
      * fallarian aunque fuera la misma pieza.
      * <p>
      * 2) DROPDOWN y TEXT_INPUT: guardan ademas, en paralelo, bindingKey +

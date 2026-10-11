@@ -127,13 +127,6 @@ public class WizardService {
                     test.errorMessage() != null ? test.errorMessage() : messages.get("wizard.odooValidationFailed"));
         }
 
-        String detectedMajor = test.odooVersion() == null ? "" : test.odooVersion().replace(".0", "");
-        String expectedMajor = String.valueOf(request.odooVersion());
-        if (!detectedMajor.equals(expectedMajor)) {
-            throw new WizardValidationException(
-                    messages.get("wizard.odooVersionMismatch", test.odooVersion(), request.odooVersion()));
-        }
-
         User admin = new User();
         admin.setName(request.admin().fullName());
         admin.setEmail(request.admin().email());

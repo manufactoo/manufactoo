@@ -1,14 +1,18 @@
 package com.manufactoo.stations;
 
+import com.manufactoo.stations.dto.BlockWorkOrderSessionRequest;
 import com.manufactoo.stations.dto.DataSourceOption;
 import com.manufactoo.stations.dto.DataSourceTableDto;
 import com.manufactoo.stations.dto.LoadMaterialRequest;
 import com.manufactoo.stations.dto.MaterialLoadDto;
+import com.manufactoo.stations.dto.SetSessionQtyRequest;
+import com.manufactoo.stations.dto.StartWorkOrderSessionRequest;
 import com.manufactoo.stations.dto.StationDto;
 import com.manufactoo.stations.dto.SubmitRecordRequest;
 import com.manufactoo.stations.dto.TraceRecordDto;
 import com.manufactoo.stations.dto.UpsertStationRequest;
 import com.manufactoo.stations.dto.WidgetCatalogDto;
+import com.manufactoo.stations.dto.WorkOrderSessionDto;
 import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -25,10 +29,13 @@ public class StationController {
 
     private final StationService service;
     private final MaterialLoadService materialLoadService;
+    private final WorkOrderSessionService workOrderSessionService;
 
-    public StationController(StationService service, MaterialLoadService materialLoadService) {
+    public StationController(StationService service, MaterialLoadService materialLoadService,
+                              WorkOrderSessionService workOrderSessionService) {
         this.service = service;
         this.materialLoadService = materialLoadService;
+        this.workOrderSessionService = workOrderSessionService;
     }
 
     /** Catalogo estatico de widgets y origenes de datos que consume el editor no-code. */
@@ -52,20 +59,32 @@ public class StationController {
     @GetMapping("/data-source-options")
     public List<DataSourceOption> dataSourceOptions(@RequestParam DataSourceType type,
                                                     @RequestParam(defaultValue = "100") int limit,
-                                                    @RequestParam(required = false) Long stationId) {
-        return service.resolveDataSource(type, limit, stationId);
+                                                    @RequestParam(required = false) Long stationId,
+                                                    @RequestParam(required = false) Long operationId) {
+        return service.resolveDataSource(type, limit, stationId, operationId);
     }
 
     /**
      * Resuelve un origen de datos a filas + columnas (para el widget TABLE).
      * stationId opcional: igual que en data-source-options, filtra ordenes
-     * por rutas de la estacion cuando el widget lo pide (config.filterByStationRoute).
+     * por rutas de la estacion cuando el widget lo pide (config.filterByStationRoute),
+     * o workorders por el Work Center de la estacion (automatico para
+     * ODOO_WORKORDERS, sin casilla -- ver conversacion 2026-08-04).
+     * operationId opcional: estrecha ODOO_WORKORDERS a una Operacion concreta
+     * (config.operationId).
      */
     @GetMapping("/data-source-table")
     public DataSourceTableDto dataSourceTable(@RequestParam DataSourceType type,
                                               @RequestParam(defaultValue = "50") int limit,
-                                              @RequestParam(required = false) Long stationId) {
-        return service.resolveDataSourceTable(type, limit, stationId);
+                                              @RequestParam(required = false) Long stationId,
+                                              @RequestParam(required = false) Long operationId) {
+        return service.resolveDataSourceTable(type, limit, stationId, operationId);
+    }
+
+    /** Operaciones (mrp.routing.workcenter) de un Work Center, para el picker "Estrechar a una operacion" del widget TABLE. */
+    @GetMapping("/data-source-operations")
+    public List<DataSourceOption> dataSourceOperations(@RequestParam(required = false) Long workcenterId) {
+        return service.resolveOperations(workcenterId);
     }
 
     /**
@@ -174,5 +193,46 @@ public class StationController {
     @DeleteMapping("/{id}/material-loads/{loadId}")
     public void unloadMaterial(@PathVariable Long id, @PathVariable Long loadId) {
         materialLoadService.unload(id, loadId);
+    }
+
+    /** Sesion de work order activa ahora mismo en la estacion (null si no hay ninguna). */
+    @GetMapping("/{id}/work-order-sessions/active")
+    public WorkOrderSessionDto activeWorkOrderSession(@PathVariable Long id) {
+        return workOrderSessionService.getActive(id);
+    }
+
+    /** Inicia una sesion de work order (Start) -- ver WorkOrderSessionService. */
+    @PostMapping("/{id}/work-order-sessions/start")
+    public WorkOrderSessionDto startWorkOrderSession(@PathVariable Long id, @RequestBody StartWorkOrderSessionRequest request) {
+        return workOrderSessionService.start(id, request);
+    }
+
+    @PostMapping("/{id}/work-order-sessions/{sessionId}/pause")
+    public WorkOrderSessionDto pauseWorkOrderSession(@PathVariable Long id, @PathVariable Long sessionId) {
+        return workOrderSessionService.pause(id, sessionId);
+    }
+
+    /** operatorCode opcional: permite re-escanear el operario al reanudar (p. ej. cambio de turno). */
+    @PostMapping("/{id}/work-order-sessions/{sessionId}/resume")
+    public WorkOrderSessionDto resumeWorkOrderSession(@PathVariable Long id, @PathVariable Long sessionId,
+                                                       @RequestParam(required = false) String operatorCode) {
+        return workOrderSessionService.resume(id, sessionId, operatorCode);
+    }
+
+    @PostMapping("/{id}/work-order-sessions/{sessionId}/block")
+    public WorkOrderSessionDto blockWorkOrderSession(@PathVariable Long id, @PathVariable Long sessionId,
+                                                      @RequestBody BlockWorkOrderSessionRequest request) {
+        return workOrderSessionService.block(id, sessionId, request);
+    }
+
+    @PostMapping("/{id}/work-order-sessions/{sessionId}/qty")
+    public WorkOrderSessionDto setWorkOrderSessionQty(@PathVariable Long id, @PathVariable Long sessionId,
+                                                       @RequestBody SetSessionQtyRequest request) {
+        return workOrderSessionService.setQty(id, sessionId, request);
+    }
+
+    @PostMapping("/{id}/work-order-sessions/{sessionId}/finish")
+    public WorkOrderSessionDto finishWorkOrderSession(@PathVariable Long id, @PathVariable Long sessionId) {
+        return workOrderSessionService.finish(id, sessionId);
     }
 }

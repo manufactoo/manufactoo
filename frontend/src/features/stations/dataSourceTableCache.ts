@@ -15,17 +15,28 @@ const cache = new Map<string, Promise<DataSourceTable>>();
 /**
  * stationId opcional: si se pasa, filtra ordenes de fabricacion por las
  * rutas de esa estacion (config.filterByStationRoute de un TABLE, ver
- * WidgetView.tsx) -- clave de cache distinta (":route:<id>") para no
+ * WidgetView.tsx) o workorders por el Work Center de la estacion
+ * (automatico para ODOO_WORKORDERS, sin casilla -- ver conversacion
+ * 2026-08-04) -- clave de cache distinta (":route:<id>") para no
  * compartirla con una peticion sin filtrar del mismo tipo/limite, igual
  * criterio que optionsKeyFor en StationRuntimePage.tsx para el DROPDOWN.
+ * operationId opcional: estrecha ODOO_WORKORDERS a una Operacion concreta
+ * (config.operationId).
  */
-export function fetchDataSourceTable(type: string, limit = 200, stationId?: string | number): Promise<DataSourceTable> {
-  const key = stationId ? `${type}:${limit}:route:${stationId}` : `${type}:${limit}`;
+export function fetchDataSourceTable(
+  type: string,
+  limit = 200,
+  stationId?: string | number,
+  operationId?: string | number,
+): Promise<DataSourceTable> {
+  const key = stationId || operationId
+    ? `${type}:${limit}:route:${stationId ?? ""}:op:${operationId ?? ""}`
+    : `${type}:${limit}`;
   let pending = cache.get(key);
   if (!pending) {
     pending = apiClient
       .get<DataSourceTable>("/api/stations/data-source-table", {
-        params: stationId ? { type, limit, stationId } : { type, limit },
+        params: stationId || operationId ? { type, limit, stationId, operationId } : { type, limit },
       })
       .then(({ data }) => data);
     // Si la peticion falla, se quita de la cache para que el siguiente intento

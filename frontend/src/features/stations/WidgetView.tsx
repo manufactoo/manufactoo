@@ -12,6 +12,7 @@ import { apiClient } from "@/lib/api-client";
 import { useStationAssetUrl } from "./useStationAssetUrl";
 import { getBridge } from "./manufactoo-bridge";
 import { fetchDataSourceTable } from "./dataSourceTableCache";
+import { WorkOrderActionsWidget } from "./WorkOrderActionsWidget";
 import type { DataSourceOption, DataSourceTable, MaterialLoad, TraceRecord, Widget, WidgetStyle } from "./types";
 
 /**
@@ -246,6 +247,8 @@ export interface WidgetViewProps {
   stationName?: string;
   screenTitle?: string;
   interactive?: boolean;
+  /** Work Center (mrp.workcenter) de la estacion -- lo necesita WORKORDER_ACTIONS para iniciar una sesion (ver conversacion 2026-08-05). */
+  odooWorkcenterId?: number | null;
 }
 
 export function WidgetView({
@@ -268,6 +271,7 @@ export function WidgetView({
   stationName,
   screenTitle,
   interactive = true,
+  odooWorkcenterId,
 }: WidgetViewProps) {
   const { t } = useTranslation("dashboard");
   const placeholder = (widget.config.placeholder as string) ?? "";
@@ -310,7 +314,7 @@ export function WidgetView({
     );
   }
   if (widget.widgetType === "IMAGE") {
-    return <WidgetImage widget={widget} />;
+    return <WidgetImage widget={widget} resolvedRows={resolvedRows} interactive={interactive} />;
   }
   if (widget.widgetType === "PANEL") {
     // Puramente decorativo: agrupa visualmente otros widgets colocados
@@ -328,6 +332,17 @@ export function WidgetView({
   }
   if (widget.widgetType === "TABLE") {
     return <WidgetTable widget={widget} value={value} onChange={change} interactive={interactive} stationId={stationId} />;
+  }
+  if (widget.widgetType === "WORKORDER_ACTIONS") {
+    return (
+      <WorkOrderActionsWidget
+        widget={widget}
+        stationId={stationId}
+        odooWorkcenterId={odooWorkcenterId}
+        resolvedRows={resolvedRows}
+        interactive={interactive}
+      />
+    );
   }
   if (widget.widgetType === "BUTTON") {
     const style = partStyle(widget, "text");
@@ -883,10 +898,30 @@ function ScanResolver({
   );
 }
 
-function WidgetImage({ widget }: { widget: Widget }) {
-  const url = useStationAssetUrl(widget.config.assetId as number | undefined);
+function WidgetImage({
+  widget,
+  resolvedRows,
+  interactive,
+}: {
+  widget: Widget;
+  resolvedRows?: Record<string, Record<string, unknown>>;
+  interactive?: boolean;
+}) {
   const { t } = useTranslation("dashboard");
   const style = partStyle(widget, "image");
+  const boundTo = widget.config.boundTo as string | undefined;
+  const boundField = (widget.config.boundField as string) || BOUND_FIELD_VALUE;
+
+  const imageSource = (widget.config.imageSource as string) || "STATIC";
+  let url: string | null = null;
+  if (imageSource === "BOUND" && boundTo) {
+    const raw = resolvedRows?.[boundTo]?.[boundField];
+    url = interactive ? imageDataUrl(raw) : null;
+  }
+  // Fallback a imagen estatica subida si no hay vinculacion o no hay dato.
+  const staticUrl = useStationAssetUrl(widget.config.assetId as number | undefined);
+  if (!url) url = staticUrl;
+
   if (!url) {
     return (
       <div className="flex size-full items-center justify-center rounded border border-dashed text-xs text-muted-foreground">
@@ -906,6 +941,28 @@ function WidgetImage({ widget }: { widget: Widget }) {
       />
     </div>
   );
+}
+
+/**
+ * Convierte un valor de imagen de Odoo (image_128, base64 sin prefijo) en un
+ * data URL usable por <img>. Si ya es un data URL o una URL normal, se
+ * devuelve tal cual. En modo diseno (interactive=false) no se resuelve ningun
+ * dato real, asi que se devuelve null para que se use la vista previa estatica.
+ */
+function imageDataUrl(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.startsWith("data:") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  // Odoo devuelve image_128 como base64 crudo; inferimos el mime por la firma.
+  let mime = "image/png";
+  if (trimmed.startsWith("/9j/")) mime = "image/jpeg";
+  else if (trimmed.startsWith("iVBOR")) mime = "image/png";
+  else if (trimmed.startsWith("R0lGOD")) mime = "image/gif";
+  else if (trimmed.startsWith("PHN2Zy") || trimmed.startsWith("<svg")) mime = "image/svg+xml";
+  return `data:${mime};base64,${trimmed}`;
 }
 
 /** Odoo many2one llega como [id, "etiqueta"]; mostramos la etiqueta. Exportado para que StationRuntimePage pueda componer el mismo texto al construir las opciones de un DROPDOWN con "Mostrar como". */
@@ -940,15 +997,21 @@ function WidgetTable({
   const cellStyle = partStyle(widget, "cell");
   const routeFilterStationId =
     type === "ODOO_MANUFACTURING_ORDERS" && widget.config.filterByStationRoute === true ? stationId : undefined;
+  /** Filtro por Work Center de la estacion -- automatico, sin casilla: si la estacion tiene Work Center asociado, la cola de workorders se filtra sola (ver conversacion 2026-08-04, "queremos que sea automatico"). Si la estacion no tiene Work Center, el backend no filtra nada (fail-open). */
+  const workcenterFilterStationId = type === "ODOO_WORKORDERS" ? stationId : undefined;
+  /** Estrecha ODOO_WORKORDERS a una Operacion concreta (config.operationId, opcional). */
+  const operationFilterId =
+    type === "ODOO_WORKORDERS" ? (widget.config.operationId as string | undefined) : undefined;
+  const tableFilterStationId = routeFilterStationId ?? workcenterFilterStationId;
 
   React.useEffect(() => {
     if (!type || type === "STATIC_LIST") return;
     const maxRows = Number(widget.config.maxRows) || 50;
     setError(false);
-    fetchDataSourceTable(type, maxRows, routeFilterStationId)
+    fetchDataSourceTable(type, maxRows, tableFilterStationId, operationFilterId)
       .then(setTable)
       .catch(() => setError(true));
-  }, [type, widget.config.maxRows, routeFilterStationId]);
+  }, [type, widget.config.maxRows, tableFilterStationId, operationFilterId]);
 
   if (error) return <p className="text-xs text-destructive">{t("stations.runtime.loadOptionsError")}</p>;
   if (!table) return <p className="text-xs text-muted-foreground">{t("masterData.loading")}</p>;

@@ -8,10 +8,7 @@
   },
   "step2": {
     "title": "Conexion con Odoo",
-    "subtitle": "Manufactoo necesita conectarse a tu instancia Odoo como fuente de datos maestros (productos, listas de materiales, ordenes de fabricacion). Elige la version de Odoo que tienes instalada, introduce los datos de conexion y haz el test para continuar.",
-    "versionQuestion": "¿Que version de Odoo tienes instalada?",
-    "version18": "Odoo 18",
-    "version19": "Odoo 19",
+    "subtitle": "Manufactoo necesita conectarse a tu instancia Odoo como fuente de datos maestros (productos, listas de materiales, ordenes de fabricacion). Introduce los datos de conexion y haz el test para continuar: la version de Odoo (18 o 19) se detecta sola.",
     "externalHost": "URL o host",
     "hostHint": "Si Odoo esta instalado en tu propio equipo (no en un contenedor Docker), usa 'host.docker.internal' en vez de 'localhost'.",
     "externalPort": "Puerto",
@@ -19,8 +16,7 @@
     "externalUsername": "Usuario",
     "externalApiKey": "API key o contrasena",
     "testSuccess": "Conexion correcta. Version de Odoo detectada: {{version}}",
-    "testFailure": "No se pudo conectar: {{error}}",
-    "versionMismatch": "Version detectada ({{detected}}) no coincide con la seleccionada ({{expected}}). Verifica tu instalacion de Odoo."
+    "testFailure": "No se pudo conectar: {{error}}"
   },
   "step3": {
     "title": "Datos de la empresa",

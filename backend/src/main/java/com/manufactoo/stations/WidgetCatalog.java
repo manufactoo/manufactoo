@@ -96,7 +96,13 @@ public final class WidgetCatalog {
                     List.of(
                             WidgetFieldDef.select("selectionMode", false, List.of("NONE", "SINGLE", "MULTI")),
                             WidgetFieldDef.text("valueColumn", false, "id"),
-                            WidgetFieldDef.number("maxRows", false, "20"))),
+                            WidgetFieldDef.number("maxRows", false, "20"),
+                            // Para una tabla ODOO_MANUFACTURING_ORDERS marcada como "decide la
+                            // orden a descontar" (PRODUCTION_MO_BINDING_KEY, ver
+                            // StationService): la fila elegida debe seguir seleccionada entre
+                            // unidad y unidad del mismo lote, no solo el operario/identificador
+                            // -- si no, habria que reelegir la MO en cada unidad.
+                            WidgetFieldDef.checkbox("sticky"))),
             new WidgetDescriptor(
                     // MATERIALS abre el popup de gestion de lotes/series activos en la
                     // estacion (ver MaterialLoadService) -- no requiere ningun widget
@@ -133,7 +139,14 @@ public final class WidgetCatalog {
                     // el formulario) ni origen de datos propio. maxRows limita cuantos
                     // registros recientes trae (mismo patron que TABLE.maxRows).
                     WidgetType.STATION_HISTORY.name(), WidgetCategory.DISPLAY, false, false,
-                    List.of(WidgetFieldDef.number("maxRows", false, "10")))
+                    List.of(WidgetFieldDef.number("maxRows", false, "10"))),
+            new WidgetDescriptor(
+                    // Sin configFields declarativos: su unica configuracion es
+                    // config.boundTo (que TABLE de ODOO_WORKORDERS actuar), tratado
+                    // especialmente en el frontend igual que el boundTo de LABEL, no
+                    // via WidgetFieldDef (ver StationBuilderPage.tsx).
+                    WidgetType.WORKORDER_ACTIONS.name(), WidgetCategory.DISPLAY, false, false,
+                    List.of())
     );
 
     public static List<WidgetDescriptor> widgets() {

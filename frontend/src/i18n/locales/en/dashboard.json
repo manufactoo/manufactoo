@@ -1,5 +1,27 @@
 {
   "welcome": "Welcome to Manufactoo",
+  "openOrders": {
+    "title": "Open orders",
+    "subtitle": "Completion of each in-progress manufacturing order, live.",
+    "empty": "No open manufacturing orders right now.",
+    "error": "Couldn't load manufacturing orders.",
+    "count": "open",
+    "average": "average completion",
+    "viewTable": "View as table",
+    "viewChart": "View as chart",
+    "state": {
+      "confirmed": "Confirmed",
+      "progress": "In progress",
+      "to_close": "To close"
+    },
+    "table": {
+      "order": "Order",
+      "product": "Product",
+      "state": "State",
+      "quantity": "Quantity",
+      "completion": "Completion"
+    }
+  },
   "apps": {
     "title": "Apps",
     "subtitle": "Install additional Manufactoo functionality. Some apps depend on others.",
@@ -119,10 +141,14 @@
     "pageTitle": "Stations",
     "subtitle": "Physical shop-floor workstations. Design each station's layout with no code; the operator uses it day-to-day and generates traceability data.",
     "add": "Create station",
+    "createFromWorkcenter": "Create from Work Center",
     "edit": "Edit station",
     "name": "Name",
     "description": "Description",
     "enabled": "Enabled",
+    "odooWorkcenter": "Odoo Work Center (optional)",
+    "odooWorkcenterNone": "None",
+    "odooWorkcenterHint": "The physical resource/machine this station belongs to in Odoo. Used to filter its work order queue and, later, to report production against it.",
     "empty": "No stations yet.",
     "confirmDelete": "Delete this station?",
     "notInstalled": "Install the Traceability & genealogy app to manage stations.",
@@ -145,12 +171,14 @@
       "name": "Name",
       "product": "Product",
       "anyProduct": "Any product",
-      "identifierKey": "Identifier key",
-      "identifierKeyHint": "The data key that identifies the unit at each station in the route (e.g. \"serial\", \"order\"). Every station in the route must capture a value under this same key; genealogy uses it to group the journey of the manufactured unit.",
       "steps": "Steps (station sequence)",
       "addStep": "Add step",
       "stepLabel": "Step label",
       "noSteps": "Add at least one station.",
+      "fillFromOdoo": "Fill from Odoo's operations",
+      "fillNoOperations": "This product has no operations routing defined in Odoo (or no BOM).",
+      "fillSkipped": "{{count}} operation(s) have no station with their Work Center associated -- add them by hand.",
+      "fillError": "Could not read Odoo's operations.",
       "needAtLeastOneStep": "The route needs at least one step.",
       "saveError": "Could not save the route.",
       "confirmDelete": "Delete this route?"
@@ -182,6 +210,7 @@
       "emptyCanvas": "Add widgets from the left panel to start designing.",
       "back": "Back",
       "save": "Save layout",
+      "workorderTip": "We've added a table already wired to this station's Work Center work order queue (it filters itself), and below it the \"Work order actions\" widget: Start/Pause/Block/Finish on whichever work order you pick in the table -- it really writes to Odoo (time, quantity). You can adjust columns, narrow it to one operation, or delete either one if you don't need them -- all from their Properties.",
       "saved": "Layout saved",
       "error": "Could not save the layout.",
       "screenTitle": "Screen title",
@@ -196,8 +225,23 @@
     "widget": {
       "bindingKey": "Data key",
       "bindingKeyHint": "Name under which the value is stored in traceability, and shown in warnings and \"Link to\" (e.g. order, operator).",
+      "isIdentifier": "This is the station's identifier",
+      "isIdentifierHint": "The data (e.g. serial number, lot code) this unit can be searched by in Genealogy -- works even if the station has no Route. If the station is also a step of an enabled Route, it's used additionally to check that prior steps were already completed. Only one per station: checking it here automatically unchecks any other field that had it.",
+      "isProductionMo": "Deduct real production in Odoo against the order chosen here",
+      "isProductionMoHint": "When a valid (non-NG) unit is submitted with no Route steps left pending, this writes for real to Odoo: consumes the proportional raw material and adds 1 to the produced quantity of the manufacturing order chosen here (table, dropdown, or a scanned/typed code -- whichever you're using), under the lot from the \"Is the identifier\" field. No backorders: the order closes itself once it reaches the planned quantity. Only one such field per station.",
+      "workorderActionsBoundToHint": "Which Work orders (Odoo) table to use: the buttons act on whichever work order is currently selected there. Independent from \"Narrow to one operation\" (that only filters which rows the table shows) and from the Route identifier (that validates the physical unit, not the work order).",
+      "workorderActionsNoTable": "First add a Table with data source \"Work orders (Odoo)\" and selection \"Single select\" -- this widget acts on whichever row is picked there.",
+      "workorderActionsPreview": "Start / Pause / Block / Finish (preview, no real data)",
+      "workorderActionsNeedsBoundTo": "This widget needs to be linked to a Work orders table (Link to, in Properties).",
+      "workorderActionsHeader": "Work order",
       "required": "Required",
       "image": "Image",
+      "imageSource": "Image source",
+      "imageSourceHint": "Uploaded static image, or photo/image field of the record selected in another widget.",
+      "imageSourceStatic": "Static image",
+      "imageSourceBound": "Linked to another widget",
+      "imageBoundToField": "Will show the image from the '{{field}}' field of the selected record.",
+      "imageNoImageField": "This source has no image. Link the widget to an Odoo product or operator.",
       "source": "Input source",
       "sourceKind": {
         "NONE": "Manual",
@@ -224,6 +268,9 @@
       "tableColumnsHint": "Which table columns are shown. With none chosen, all columns show automatically.",
       "filterByStationRoute": "Only orders whose product has a route through this station",
       "filterByStationRouteHint": "Looks at each order's product: if it has an enabled route that passes through this station, it's shown; otherwise it's hidden. If no route includes this station, or one doesn't set a product (applies to any), all orders are shown anyway.",
+      "operationId": "Narrow to one operation (optional)",
+      "operationIdHint": "If this station always does the same task, pick its Operation so the operator doesn't have to choose anything. If the station is reused for several tasks on the same Work Center (e.g. mixing in two stages), leave it as \"Any\" so the operator picks from the list.",
+      "operationIdAny": "Any (operator picks)",
       "textInputDataSourceHint": "Optional: first pick which Odoo master data the value comes from (e.g. Operators), then which data gets typed (e.g. employee code). To show a field from the matched record (name, department...) add a Label and link it to this field.",
       "boundTo": "Link to",
       "boundToHint": "This Label can show a live value from another widget on the station (the validated code in a text field, a dropdown or table selection...) instead of fixed text.",
@@ -258,7 +305,8 @@
       "BUTTON": "Button",
       "STATION_MATERIALS": "Station materials",
       "PANEL": "Panel",
-      "STATION_HISTORY": "Station history"
+      "STATION_HISTORY": "Station history",
+      "WORKORDER_ACTIONS": "Work order actions"
     },
     "dataSources": {
       "STATIC_LIST": "Static list",
@@ -266,7 +314,10 @@
       "ODOO_MANUFACTURING_ORDERS": "Manufacturing orders (Odoo)",
       "ODOO_OPERATORS": "Operators (Odoo)",
       "ODOO_BOMS": "Bills of materials (Odoo)",
-      "ODOO_SERIALS": "Serials/lots (Odoo)"
+      "ODOO_SERIALS": "Serials/lots (Odoo)",
+      "ODOO_WORKCENTERS": "Work Centers (Odoo)",
+      "ODOO_WORKORDERS": "Work orders (Odoo)",
+      "ODOO_LOSS_REASONS": "Block reasons (Odoo)"
     },
     "fields": {
       "placeholder": "Placeholder",
@@ -279,6 +330,7 @@
       "targetScreen": "Target screen (#)",
       "selectionMode": "Selection",
       "valueColumn": "Stored value column",
+      "valueColumnHint": "Which column of the selected row gets stored as this field's value (in traceability, in a Label's 'Link to', etc.). Defaults to 'id' -- you'll almost never need to change it.",
       "result": "Result",
       "finalizesFlow": "Finishes flow",
       "finalizesFlowHint": "Confirming this field's value (Enter, selection, scan) records the unit with result OK.",
@@ -357,7 +409,24 @@
       "materialsEmpty": "No lot/serial loaded in this station right now.",
       "invalidMaterialCode": "Code \"{{code}}\" is not valid in Odoo.",
       "addMaterial": "Add",
-      "unload": "Remove"
+      "unload": "Remove",
+      "workorderNoSelection": "Pick a work order in the table to get started.",
+      "operatorCodePlaceholder": "Operator code (optional)",
+      "workorderStart": "Start",
+      "workorderPause": "Pause",
+      "workorderResume": "Resume",
+      "workorderBlock": "Block",
+      "workorderFinish": "Finish work order",
+      "workorderConfirmBlock": "Confirm block",
+      "workorderBlockReasonPlaceholder": "Block reason",
+      "workorderQty": "Qty producing",
+      "workorderActionError": "Couldn't complete the action.",
+      "workorderState": {
+        "RUNNING": "Running",
+        "PAUSED": "Paused",
+        "BLOCKED": "Blocked",
+        "DONE": "Finished"
+      }
     },
     "records": {
       "title": "Records",
@@ -412,6 +481,18 @@
       "back": "Back to recent"
     }
   },
+  "workCenters": {
+    "pageTitle": "Work Centers",
+    "subtitle": "Which session (Start/Pause/Block/Finish) is active right now at each station across the whole install.",
+    "refresh": "Refresh",
+    "empty": "No work order session is active right now.",
+    "station": "Station",
+    "workorder": "Work order",
+    "state": "State",
+    "operator": "Operator",
+    "qty": "Qty",
+    "started": "Started"
+  },
   "masterData": {
     "title": "Master data",
     "subtitle": "Live information from Odoo. Manufactoo keeps no copy: every time you open this screen it queries Odoo directly.",
@@ -420,7 +501,9 @@
       "boms": "Bills of materials",
       "manufacturingOrders": "Manufacturing orders",
       "operators": "Operators",
-      "serials": "Serials/lots"
+      "serials": "Serials/lots",
+      "workcenters": "Work Centers",
+      "workorders": "Work orders"
     },
     "columns": {
       "display_name": "Name",
@@ -441,13 +524,27 @@
       "department_id": "Department",
       "work_email": "Email",
       "ref": "Internal reference",
-      "employeeCode": "Employee code"
+      "employeeCode": "Employee code",
+      "workcenter_id": "Work Center",
+      "production_id": "Manufacturing order",
+      "qty_producing": "Quantity producing",
+      "qty_remaining": "Quantity remaining",
+      "image_128": "Image",
+      "lot_role": "Manufacturing role"
+    },
+    "lotRole": {
+      "raw_material": "Raw material",
+      "produced": "Order output",
+      "both": "Both (semi-finished)",
+      "unlinked": "Not used in any MO"
     },
     "loading": "Loading data from Odoo...",
     "empty": "Nothing to show.",
     "error": "Could not load data from Odoo.",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "filterAll": "All",
+    "filterEmpty": "No record on this page matches the filter."
   },
   "settings": {
     "title": "Settings",

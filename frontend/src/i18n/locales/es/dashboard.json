@@ -1,5 +1,27 @@
 {
   "welcome": "Bienvenido a Manufactoo",
+  "openOrders": {
+    "title": "Ordenes abiertas",
+    "subtitle": "Completitud de cada orden de fabricacion en curso, en vivo.",
+    "empty": "No hay ordenes de fabricacion abiertas ahora mismo.",
+    "error": "No se pudieron cargar las ordenes de fabricacion.",
+    "count": "abiertas",
+    "average": "completitud media",
+    "viewTable": "Ver como tabla",
+    "viewChart": "Ver como grafico",
+    "state": {
+      "confirmed": "Confirmada",
+      "progress": "En curso",
+      "to_close": "Por cerrar"
+    },
+    "table": {
+      "order": "Orden",
+      "product": "Producto",
+      "state": "Estado",
+      "quantity": "Cantidad",
+      "completion": "Completitud"
+    }
+  },
   "apps": {
     "title": "Aplicaciones",
     "subtitle": "Instala funcionalidades adicionales de Manufactoo. Algunas apps dependen de otras.",
@@ -119,10 +141,14 @@
     "pageTitle": "Estaciones",
     "subtitle": "Puestos fisicos de la fabrica. Diseña el layout de cada estacion sin escribir codigo; el operario lo usara en el dia a dia y generara datos de trazabilidad.",
     "add": "Crear estacion",
+    "createFromWorkcenter": "Crear desde Work Center",
     "edit": "Editar estacion",
     "name": "Nombre",
     "description": "Descripcion",
     "enabled": "Activa",
+    "odooWorkcenter": "Work Center de Odoo (opcional)",
+    "odooWorkcenterNone": "Ninguno",
+    "odooWorkcenterHint": "El recurso/maquina fisica al que pertenece esta estacion en Odoo. Se usa para filtrar su cola de ordenes de trabajo y, mas adelante, para reportar produccion contra el.",
     "empty": "No hay estaciones todavia.",
     "confirmDelete": "Eliminar esta estacion?",
     "notInstalled": "Instala la app Trazabilidad y genealogia para gestionar estaciones.",
@@ -145,12 +171,14 @@
       "name": "Nombre",
       "product": "Producto",
       "anyProduct": "Cualquier producto",
-      "identifierKey": "Clave identificadora",
-      "identifierKeyHint": "La clave de datos que identifica la unidad en cada estacion de la ruta (p. ej. \"serial\", \"orden\"). Cada estacion de la ruta debe capturar un dato con esta misma clave, y la genealogia la usa para agrupar el recorrido de la unidad fabricada.",
       "steps": "Pasos (secuencia de estaciones)",
       "addStep": "Anadir paso",
       "stepLabel": "Etiqueta del paso",
       "noSteps": "Anade al menos una estacion.",
+      "fillFromOdoo": "Rellenar desde las operaciones de Odoo",
+      "fillNoOperations": "Este producto no tiene una ruta de operaciones definida en Odoo (o no tiene BOM).",
+      "fillSkipped": "{{count}} operacion(es) sin ninguna estacion con su Work Center asociado -- anadelas a mano.",
+      "fillError": "No se pudieron leer las operaciones de Odoo.",
       "needAtLeastOneStep": "La ruta necesita al menos un paso.",
       "saveError": "No se pudo guardar la ruta.",
       "confirmDelete": "Eliminar esta ruta?"
@@ -182,6 +210,7 @@
       "emptyCanvas": "Anade widgets desde el panel de la izquierda para empezar a disenar.",
       "back": "Volver",
       "save": "Guardar layout",
+      "workorderTip": "Hemos anadido una tabla ya conectada a la cola de ordenes de trabajo del Work Center de esta estacion (se filtra sola), y debajo el widget \"Acciones de work order\": Start/Pausar/Bloquear/Finalizar sobre el work order que elijas en la tabla -- escribe de verdad en Odoo (tiempos, cantidad). Puedes ajustar columnas, estrechar a una operacion concreta, o borrar cualquiera de los dos si no los necesitas -- todo en sus Propiedades.",
       "saved": "Layout guardado",
       "error": "No se pudo guardar el layout.",
       "screenTitle": "Titulo de la pantalla",
@@ -196,8 +225,23 @@
     "widget": {
       "bindingKey": "Clave de datos",
       "bindingKeyHint": "Nombre con el que se guarda el valor en trazabilidad y con el que aparece este campo en avisos y en \"Vincular a\" (p. ej. orden, operario).",
+      "isIdentifier": "Es el identificador de esta estacion",
+      "isIdentifierHint": "El dato (p. ej. numero de serie, codigo de lote) por el que esta unidad se puede buscar en Genealogia -- funciona aunque la estacion no tenga ninguna Ruta. Si ademas es paso de una Ruta habilitada, esta se usa tambien para comprobar que los pasos anteriores ya se completaron. Solo puede haber uno por estacion: marcarlo aqui desmarca automaticamente cualquier otro campo que lo tuviera.",
+      "isProductionMo": "Descuenta produccion real en Odoo contra la orden elegida aqui",
+      "isProductionMoHint": "Al enviar una unidad valida (no NG) que ya no tenga pasos de Ruta pendientes, se escribe de verdad en Odoo: se consume materia prima proporcional y se suma 1 a la cantidad producida de la orden de fabricacion elegida aqui (tabla, desplegable o codigo escaneado/tecleado, lo que tengas), bajo el lote del campo \"Es el identificador\". Sin backorders: la orden se cierra sola al llegar a la cantidad planeada. Solo puede haber un campo asi por estacion.",
+      "workorderActionsBoundToHint": "Que tabla de Ordenes de trabajo (Odoo) usar: los botones actuan sobre el work order que este seleccionado ahi en cada momento. Es independiente de \"Estrechar a una operacion\" (eso solo filtra que filas se ven en la tabla) y del identificador de Ruta (eso valida la unidad fisica, no el work order).",
+      "workorderActionsNoTable": "Añade primero una Tabla con origen \"Ordenes de trabajo (Odoo)\" y seleccion \"Seleccion unica\" -- este widget actua sobre la fila que se elija ahi.",
+      "workorderActionsPreview": "Start / Pausar / Bloquear / Finalizar (vista previa, sin datos reales)",
+      "workorderActionsNeedsBoundTo": "Este widget necesita estar vinculado a una tabla de Ordenes de trabajo (Vincular a, en Propiedades).",
+      "workorderActionsHeader": "Work order",
       "required": "Obligatorio",
       "image": "Imagen",
+      "imageSource": "Origen de la imagen",
+      "imageSourceHint": "Imagen estatica subida, o foto/campo de imagen del registro seleccionado en otro widget.",
+      "imageSourceStatic": "Imagen estatica",
+      "imageSourceBound": "Vinculada a otro widget",
+      "imageBoundToField": "Mostrara la imagen del campo '{{field}}' del registro seleccionado.",
+      "imageNoImageField": "Este origen no tiene imagen. Vincula el widget a un producto u operario de Odoo.",
       "source": "Origen del valor",
       "sourceKind": {
         "NONE": "Manual",
@@ -224,6 +268,9 @@
       "tableColumnsHint": "Que columnas de la tabla se ven. Sin elegir ninguna, se muestran todas automaticamente.",
       "filterByStationRoute": "Solo ordenes cuyo producto tiene ruta por esta estacion",
       "filterByStationRouteHint": "Se mira el producto de cada orden: si tiene una ruta habilitada que pasa por esta estacion, se enseña; si no, se oculta. Si ninguna ruta incluye esta estacion, o alguna no fija producto (vale para cualquiera), se enseñan todas igualmente.",
+      "operationId": "Estrechar a una operacion (opcional)",
+      "operationIdHint": "Si esta estacion siempre hace la misma tarea, elige su Operacion para que el operario no tenga que elegir nada. Si la estacion se reutiliza para varias tareas del mismo Work Center (p. ej. amasado en dos tiempos), dejalo en \"Cualquiera\" para que el operario elija de la lista.",
+      "operationIdAny": "Cualquiera (el operario elige)",
       "textInputDataSourceHint": "Opcional: primero elige de que dato maestro de Odoo viene el valor (p. ej. Operarios), luego que dato se teclea (p. ej. codigo de operario). Para mostrar un dato del registro encontrado (nombre, departamento...) añade una Etiqueta y vinculala a este campo.",
       "boundTo": "Vincular a",
       "boundToHint": "Esta Etiqueta puede mostrar en vivo un dato de otro widget de la estacion (el codigo validado en un campo de texto, la seleccion de un desplegable o una tabla...) en vez de un texto fijo.",
@@ -258,7 +305,8 @@
       "BUTTON": "Boton",
       "STATION_MATERIALS": "Materiales de la estacion",
       "PANEL": "Panel",
-      "STATION_HISTORY": "Historial de la estacion"
+      "STATION_HISTORY": "Historial de la estacion",
+      "WORKORDER_ACTIONS": "Acciones de work order"
     },
     "dataSources": {
       "STATIC_LIST": "Lista estatica",
@@ -266,7 +314,10 @@
       "ODOO_MANUFACTURING_ORDERS": "Ordenes de fabricacion (Odoo)",
       "ODOO_OPERATORS": "Operarios (Odoo)",
       "ODOO_BOMS": "Listas de materiales (Odoo)",
-      "ODOO_SERIALS": "Series/lotes (Odoo)"
+      "ODOO_SERIALS": "Series/lotes (Odoo)",
+      "ODOO_WORKCENTERS": "Work Centers (Odoo)",
+      "ODOO_WORKORDERS": "Ordenes de trabajo (Odoo)",
+      "ODOO_LOSS_REASONS": "Motivos de bloqueo (Odoo)"
     },
     "fields": {
       "placeholder": "Texto de ayuda",
@@ -279,6 +330,7 @@
       "targetScreen": "Pantalla destino (nº)",
       "selectionMode": "Seleccion",
       "valueColumn": "Columna de valor guardado",
+      "valueColumnHint": "Que columna de la fila seleccionada se guarda como valor de este campo (en trazabilidad, en 'Vincular a' de una Etiqueta, etc.). Por defecto 'id' -- casi nunca hace falta cambiarlo.",
       "result": "Resultado",
       "finalizesFlow": "Finaliza flujo",
       "finalizesFlowHint": "Al confirmar el valor de este campo (Enter, seleccion, escaneo), se registra la unidad con resultado OK.",
@@ -357,7 +409,24 @@
       "materialsEmpty": "No hay ningun lote/serie cargado en esta estacion ahora mismo.",
       "invalidMaterialCode": "El codigo \"{{code}}\" no es valido en Odoo.",
       "addMaterial": "Añadir",
-      "unload": "Quitar"
+      "unload": "Quitar",
+      "workorderNoSelection": "Elige un work order en la tabla para empezar.",
+      "operatorCodePlaceholder": "Codigo de operario (opcional)",
+      "workorderStart": "Iniciar",
+      "workorderPause": "Pausar",
+      "workorderResume": "Reanudar",
+      "workorderBlock": "Bloquear",
+      "workorderFinish": "Finalizar work order",
+      "workorderConfirmBlock": "Confirmar bloqueo",
+      "workorderBlockReasonPlaceholder": "Motivo del bloqueo",
+      "workorderQty": "Cantidad producida",
+      "workorderActionError": "No se pudo completar la accion.",
+      "workorderState": {
+        "RUNNING": "En marcha",
+        "PAUSED": "Pausado",
+        "BLOCKED": "Bloqueado",
+        "DONE": "Finalizado"
+      }
     },
     "records": {
       "title": "Registros",
@@ -412,6 +481,18 @@
       "back": "Volver a recientes"
     }
   },
+  "workCenters": {
+    "pageTitle": "Work Centers",
+    "subtitle": "Que sesion (Start/Pausar/Bloquear/Finalizar) esta activa ahora mismo en cada estacion de toda la instalacion.",
+    "refresh": "Actualizar",
+    "empty": "No hay ninguna sesion de work order activa ahora mismo.",
+    "station": "Estacion",
+    "workorder": "Work order",
+    "state": "Estado",
+    "operator": "Operario",
+    "qty": "Cantidad",
+    "started": "Iniciado"
+  },
   "masterData": {
     "title": "Datos maestros",
     "subtitle": "Informacion en vivo desde Odoo. Manufactoo no guarda copia: cada vez que abres esta pantalla se consulta a Odoo directamente.",
@@ -420,7 +501,9 @@
       "boms": "Listas de materiales",
       "manufacturingOrders": "Ordenes de fabricacion",
       "operators": "Operarios",
-      "serials": "Series/lotes"
+      "serials": "Series/lotes",
+      "workcenters": "Work Centers",
+      "workorders": "Ordenes de trabajo"
     },
     "columns": {
       "display_name": "Nombre",
@@ -441,13 +524,27 @@
       "department_id": "Departamento",
       "work_email": "Email",
       "ref": "Referencia interna",
-      "employeeCode": "Codigo de empleado"
+      "employeeCode": "Codigo de empleado",
+      "workcenter_id": "Work Center",
+      "production_id": "Orden de fabricacion",
+      "qty_producing": "Cantidad producida",
+      "qty_remaining": "Cantidad restante",
+      "image_128": "Imagen",
+      "lot_role": "Rol en fabricacion"
+    },
+    "lotRole": {
+      "raw_material": "Materia prima",
+      "produced": "Producto de orden",
+      "both": "Ambos (semielaborado)",
+      "unlinked": "Sin usar en ninguna MO"
     },
     "loading": "Cargando datos de Odoo...",
     "empty": "No hay datos para mostrar.",
     "error": "No se pudieron cargar los datos de Odoo.",
     "previous": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "filterAll": "Todos",
+    "filterEmpty": "Ningun registro de esta pagina coincide con el filtro."
   },
   "settings": {
     "title": "Configuracion",

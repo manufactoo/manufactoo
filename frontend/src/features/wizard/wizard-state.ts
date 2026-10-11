@@ -27,7 +27,6 @@ export interface WizardState {
   hydrated: boolean;
 
   language: string;
-  odooVersion: 18 | 19 | null;
   external: WizardExternalOdoo;
   odooTestResult: OdooTestResult | null;
   companyName: string;
@@ -54,7 +53,6 @@ export const useWizardStore = create<WizardState>((set, get) => ({
   hydrated: false,
 
   language: "es",
-  odooVersion: null,
   external: DEFAULT_EXTERNAL,
   odooTestResult: null,
   companyName: "",
@@ -76,7 +74,6 @@ export const useWizardStore = create<WizardState>((set, get) => ({
       set({
         currentStep: data.currentStep ?? 1,
         language: payload.language ?? get().language,
-        odooVersion: payload.odooVersion ?? null,
         external: { ...DEFAULT_EXTERNAL, ...(payload.external ?? {}) },
         companyName: payload.companyName ?? "",
         companySector: payload.companySector ?? "",
@@ -105,7 +102,6 @@ export const useWizardStore = create<WizardState>((set, get) => ({
         currentStep: s.currentStep,
         payload: {
           language: s.language,
-          odooVersion: s.odooVersion,
           external: { host: s.external.host, port: s.external.port, database: s.external.database, username: s.external.username },
           companyName: s.companyName,
           companySector: s.companySector,

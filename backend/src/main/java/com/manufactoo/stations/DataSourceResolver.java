@@ -5,12 +5,14 @@ import com.manufactoo.masterdata.MasterDataService;
 import com.manufactoo.odoo.connector.OdooMasterDataEntity;
 import com.manufactoo.routes.Route;
 import com.manufactoo.routes.RouteService;
+import com.manufactoo.routes.dto.RouteOperationSuggestionDto;
 import com.manufactoo.stations.dto.DataSourceOption;
 import com.manufactoo.stations.dto.DataSourceTableDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,16 +32,19 @@ public class DataSourceResolver {
 
     private final MasterDataService masterDataService;
     private final RouteService routeService;
+    private final StationRepository stationRepository;
     private final Messages messages;
 
-    public DataSourceResolver(MasterDataService masterDataService, RouteService routeService, Messages messages) {
+    public DataSourceResolver(MasterDataService masterDataService, RouteService routeService,
+                              StationRepository stationRepository, Messages messages) {
         this.masterDataService = masterDataService;
         this.routeService = routeService;
+        this.stationRepository = stationRepository;
         this.messages = messages;
     }
 
     public List<DataSourceOption> resolve(DataSourceType type, int limit) {
-        return resolve(type, limit, null);
+        return resolve(type, limit, null, null);
     }
 
     /**
@@ -53,14 +58,76 @@ public class DataSourceResolver {
      * una ruta a medio configurar.
      */
     public List<DataSourceOption> resolve(DataSourceType type, int limit, Long stationId) {
+        return resolve(type, limit, stationId, null);
+    }
+
+    /**
+     * Igual que resolve(type, limit, stationId), pero ademas admite operationId
+     * para ODOO_WORKORDERS: si el widget se ha estrechado a una Operacion
+     * concreta (config.operationId de un TABLE, ver StationBuilderPage.tsx),
+     * solo se enseñan las workorders de esa operacion, en vez de todas las del
+     * work center de la estacion.
+     */
+    public List<DataSourceOption> resolve(DataSourceType type, int limit, Long stationId, Long operationId) {
         OdooMasterDataEntity entity = odooEntity(type);
         List<Map<String, Object>> rows = masterDataService.list(entity, limit, 0);
-        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
-            rows = filterByRouteProducts(rows, stationId);
-        }
+        rows = filterByStationContext(type, rows, stationId, operationId);
         return rows.stream()
                 .map(row -> new DataSourceOption(stringId(row.get("id")), label(row)))
                 .toList();
+    }
+
+    /**
+     * Aplica los filtros contextuales de estacion segun el tipo de dato:
+     * ODOO_MANUFACTURING_ORDERS por rutas del producto, ODOO_WORKORDERS por
+     * el Work Center de la estacion y, opcionalmente, por una Operacion
+     * concreta. El resto de tipos no se filtran (stationId/operationId se
+     * ignoran).
+     */
+    private List<Map<String, Object>> filterByStationContext(DataSourceType type, List<Map<String, Object>> rows,
+                                                              Long stationId, Long operationId) {
+        List<Map<String, Object>> result = rows;
+        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
+            result = filterByRouteProducts(result, stationId);
+        }
+        if (type == DataSourceType.ODOO_WORKORDERS && stationId != null) {
+            result = filterByStationWorkcenter(result, stationId);
+        }
+        if (type == DataSourceType.ODOO_WORKORDERS && operationId != null) {
+            result = filterByOperation(result, operationId);
+        }
+        if (type == DataSourceType.ODOO_LOSS_REASONS) {
+            result = filterManualLossReasons(result);
+        }
+        return result;
+    }
+
+    /** Solo los motivos que un operario puede elegir a mano (manual=true) -- el resto son de uso interno de Odoo, no tiene sentido ofrecerlos en el selector de bloqueo. */
+    private List<Map<String, Object>> filterManualLossReasons(List<Map<String, Object>> rows) {
+        return rows.stream().filter(row -> Boolean.TRUE.equals(row.get("manual"))).toList();
+    }
+
+    /**
+     * Limita las workorders al Work Center de la estacion (Station.odooWorkcenterId,
+     * ver conversacion 2026-08-04: la estacion guarda su Work Center, no una
+     * Operacion concreta, porque un mismo Work Center puede repartirse entre
+     * varias estaciones -- p. ej. una linea entera -- o una misma estacion
+     * puede reutilizarse para varias operaciones del mismo Work Center -- p.
+     * ej. amasado en dos tiempos). Si la estacion no tiene Work Center
+     * asociado, no se filtra nada: fallar abierto, mismo criterio que
+     * filterByRouteProducts.
+     */
+    private List<Map<String, Object>> filterByStationWorkcenter(List<Map<String, Object>> rows, Long stationId) {
+        Long workcenterId = stationRepository.findById(stationId).map(Station::getOdooWorkcenterId).orElse(null);
+        if (workcenterId == null) {
+            return rows;
+        }
+        return rows.stream().filter(row -> workcenterId.equals(manyToOneId(row.get("workcenter_id")))).toList();
+    }
+
+    /** Estrecha las workorders a una Operacion concreta (config.operationId del widget) -- ver filterByStationWorkcenter. */
+    private List<Map<String, Object>> filterByOperation(List<Map<String, Object>> rows, Long operationId) {
+        return rows.stream().filter(row -> operationId.equals(manyToOneId(row.get("operation_id")))).toList();
     }
 
     private List<Map<String, Object>> filterByRouteProducts(List<Map<String, Object>> rows, Long stationId) {
@@ -80,7 +147,11 @@ public class DataSourceResolver {
 
     /** El many2one de Odoo llega como [id, "etiqueta"]; a veces ya viene solo el id. */
     private static Long productIdOf(Map<String, Object> row) {
-        Object value = row.get("product_id");
+        return manyToOneId(row.get("product_id"));
+    }
+
+    /** Extrae el id de un campo many2one de Odoo, venga como [id,"etiqueta"] o como id suelto. */
+    private static Long manyToOneId(Object value) {
         if (value instanceof List<?> pair && !pair.isEmpty() && pair.get(0) instanceof Number n) {
             return n.longValue();
         }
@@ -97,20 +168,104 @@ public class DataSourceResolver {
      * traducidas de masterData.columns.* del frontend.
      */
     public DataSourceTableDto resolveTable(DataSourceType type, int limit) {
-        return resolveTable(type, limit, null);
+        return resolveTable(type, limit, null, null);
     }
 
     /** Igual que resolveTable(type, limit), pero filtrando por rutas de estacion como resolve() -- ver filterByRouteProducts. */
     public DataSourceTableDto resolveTable(DataSourceType type, int limit, Long stationId) {
+        return resolveTable(type, limit, stationId, null);
+    }
+
+    /** Igual que resolveTable(type, limit, stationId), pero admite ademas operationId -- ver resolve(type, limit, stationId, operationId). */
+    public DataSourceTableDto resolveTable(DataSourceType type, int limit, Long stationId, Long operationId) {
         OdooMasterDataEntity entity = odooEntity(type);
         List<DataSourceTableDto.Column> columns = displayColumnsFor(type).stream()
                 .map(DataSourceTableDto.Column::of)
                 .toList();
         List<Map<String, Object>> rows = masterDataService.list(entity, limit, 0);
-        if (type == DataSourceType.ODOO_MANUFACTURING_ORDERS && stationId != null) {
-            rows = filterByRouteProducts(rows, stationId);
-        }
+        rows = filterByStationContext(type, rows, stationId, operationId);
         return new DataSourceTableDto(columns, rows);
+    }
+
+    /**
+     * Operaciones (mrp.routing.workcenter) de un Work Center concreto, para el
+     * selector "Estrechar a una operacion" del widget TABLE (config.operationId,
+     * solo tiene sentido para ODOO_WORKORDERS). No es un DataSourceType elegible
+     * por un widget -- es un catalogo auxiliar de configuracion, igual que
+     * data-source-options pero sin pasar por WidgetCatalog.dataSourceTypes().
+     * workcenterId null -> todas las operaciones de todos los Work Centers.
+     */
+    public List<DataSourceOption> resolveOperations(Long workcenterId) {
+        List<Map<String, Object>> rows = masterDataService.list(OdooMasterDataEntity.OPERATION, 500, 0);
+        if (workcenterId != null) {
+            rows = rows.stream().filter(row -> workcenterId.equals(manyToOneId(row.get("workcenter_id")))).toList();
+        }
+        return rows.stream()
+                .map(row -> new DataSourceOption(stringId(row.get("id")), label(row)))
+                .toList();
+    }
+
+    /**
+     * Operaciones de la ruta de Odoo de un producto (producto -> su BOM -> las
+     * operaciones de ese BOM, en orden), para el atajo "Rellenar desde las
+     * operaciones de Odoo" del formulario de Rutas (ver conversacion
+     * 2026-08-04): el usuario elige el producto de la ruta y esto le propone
+     * los pasos en vez de que los teclee a mano copiando lo que ya definio en
+     * el routing de Odoo. Lista vacia si el producto no existe, no tiene BOM,
+     * o su BOM no tiene operaciones -- el llamador (RouteController) lo trata
+     * como "nada que proponer", no como error.
+     */
+    public List<RouteOperationSuggestionDto> resolveRouteOperations(Long productId) {
+        Long templateId = masterDataService.list(OdooMasterDataEntity.PRODUCT, 500, 0).stream()
+                .filter(row -> productId.equals(rowId(row)))
+                .findFirst()
+                .map(row -> manyToOneId(row.get("product_tmpl_id")))
+                .orElse(null);
+        if (templateId == null) {
+            return List.of();
+        }
+        Long bomId = masterDataService.list(OdooMasterDataEntity.BOM, 500, 0).stream()
+                .filter(row -> templateId.equals(manyToOneId(row.get("product_tmpl_id"))))
+                .findFirst()
+                .map(DataSourceResolver::rowId)
+                .orElse(null);
+        if (bomId == null) {
+            return List.of();
+        }
+        return masterDataService.list(OdooMasterDataEntity.OPERATION, 500, 0).stream()
+                .filter(row -> bomId.equals(manyToOneId(row.get("bom_id"))))
+                .sorted(Comparator.comparingDouble(row -> ((Number) row.getOrDefault("sequence", 0)).doubleValue()))
+                .map(row -> {
+                    Object workcenter = row.get("workcenter_id");
+                    Long workcenterId = manyToOneId(workcenter);
+                    String workcenterName = workcenter instanceof List<?> pair && pair.size() > 1
+                            ? String.valueOf(pair.get(1)) : null;
+                    return new RouteOperationSuggestionDto(String.valueOf(row.get("name")), workcenterId, workcenterName);
+                })
+                .toList();
+    }
+
+    /** El id propio de una fila (no un many2one) -- viene siempre como numero suelto de Odoo. */
+    private static Long rowId(Map<String, Object> row) {
+        return row.get("id") instanceof Number n ? n.longValue() : null;
+    }
+
+    /**
+     * El res.users (usuario de Odoo) enlazado a un hr.employee (por su id),
+     * o null si ese operario no tiene ninguno enlazado -- usado por
+     * OdooShopFloorService.reattributeLastTimeLog para atribuir el tiempo
+     * trabajado al operario real en vez de a la cuenta de integracion de
+     * Manufactoo (ver conversacion 2026-08-05).
+     */
+    public Long resolveOperatorOdooUserId(Long employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        return masterDataService.list(OdooMasterDataEntity.OPERATOR, 500, 0).stream()
+                .filter(row -> employeeId.equals(rowId(row)))
+                .findFirst()
+                .map(row -> manyToOneId(row.get("user_id")))
+                .orElse(null);
     }
 
     /**
@@ -122,11 +277,14 @@ public class DataSourceResolver {
     private static final Map<DataSourceType, List<String>> DISPLAY_COLUMNS = new EnumMap<>(DataSourceType.class);
 
     static {
-        DISPLAY_COLUMNS.put(DataSourceType.ODOO_PRODUCTS, List.of("display_name", "default_code", "qty_available", "uom_id"));
-        DISPLAY_COLUMNS.put(DataSourceType.ODOO_MANUFACTURING_ORDERS, List.of("display_name", "product_qty", "state", "date_start"));
-        DISPLAY_COLUMNS.put(DataSourceType.ODOO_OPERATORS, List.of("name", "job_title", "department_id", "work_email"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_PRODUCTS, List.of("display_name", "default_code", "qty_available", "uom_id", "image_128"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_MANUFACTURING_ORDERS, List.of("display_name", "product_qty", "qty_producing", "state", "date_start"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_OPERATORS, List.of("name", "job_title", "department_id", "work_email", "image_128"));
         DISPLAY_COLUMNS.put(DataSourceType.ODOO_BOMS, List.of("display_name", "product_qty", "code", "type"));
         DISPLAY_COLUMNS.put(DataSourceType.ODOO_SERIALS, List.of("name", "product_id", "ref"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_WORKCENTERS, List.of("name", "code"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_WORKORDERS, List.of("name", "workcenter_id", "production_id", "state"));
+        DISPLAY_COLUMNS.put(DataSourceType.ODOO_LOSS_REASONS, List.of("name", "loss_type"));
         DISPLAY_COLUMNS.put(DataSourceType.STATIC_LIST, List.of());
     }
 
@@ -273,6 +431,9 @@ public class DataSourceResolver {
             case ODOO_MANUFACTURING_ORDERS -> OdooMasterDataEntity.MANUFACTURING_ORDER;
             case ODOO_OPERATORS -> OdooMasterDataEntity.OPERATOR;
             case ODOO_SERIALS -> OdooMasterDataEntity.SERIAL;
+            case ODOO_WORKCENTERS -> OdooMasterDataEntity.WORKCENTER;
+            case ODOO_WORKORDERS -> OdooMasterDataEntity.WORKORDER;
+            case ODOO_LOSS_REASONS -> OdooMasterDataEntity.LOSS_REASON;
             case STATIC_LIST -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     messages.get("dataSource.staticListNotResolvable"));
         };

@@ -6,8 +6,6 @@ import jakarta.validation.constraints.*;
 public record WizardCompleteRequest(
         @NotBlank String language,
 
-        @NotNull @Min(18) @Max(19) Integer odooVersion,
-
         @Valid @NotNull ExternalOdoo external,
 
         @NotBlank String companyName,

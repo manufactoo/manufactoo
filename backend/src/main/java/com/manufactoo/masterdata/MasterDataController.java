@@ -53,4 +53,16 @@ public class MasterDataController {
                                                @RequestParam(defaultValue = "0") int offset) {
         return service.list(OdooMasterDataEntity.SERIAL, limit, offset);
     }
+
+    @GetMapping("/workcenters")
+    public List<Map<String, Object>> workcenters(@RequestParam(defaultValue = "50") int limit,
+                                                   @RequestParam(defaultValue = "0") int offset) {
+        return service.list(OdooMasterDataEntity.WORKCENTER, limit, offset);
+    }
+
+    @GetMapping("/workorders")
+    public List<Map<String, Object>> workorders(@RequestParam(defaultValue = "50") int limit,
+                                                  @RequestParam(defaultValue = "0") int offset) {
+        return service.list(OdooMasterDataEntity.WORKORDER, limit, offset);
+    }
 }

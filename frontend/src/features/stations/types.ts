@@ -74,6 +74,48 @@ export interface Widget {
   orderIndex: number;
 }
 
+/**
+ * bindingKey reservado para "el identificador de esta estacion" (ver
+ * conversacion 2026-08-04): a lo sumo un widget por estacion puede tenerlo
+ * (exclusion mutua, ver setIdentifierWidget en StationBuilderPage.tsx). Las
+ * Rutas ya no piden una "Identifier key" de texto libre: siempre casan contra
+ * esta constante fija, tanto al validar que la estacion la captura
+ * (RouteService/StationService en backend) como al enviar el payload desde
+ * RoutesTab.tsx.
+ */
+export const IDENTIFIER_BINDING_KEY = "identifier";
+
+/**
+ * bindingKey reservado para la TABLA(ODOO_MANUFACTURING_ORDERS, SINGLE)
+ * marcada como "decide la orden de fabricacion a descontar" (ver conversacion
+ * 2026-08-06): mismo mecanismo que IDENTIFIER_BINDING_KEY -- a lo sumo un
+ * widget por estacion, exclusion mutua en setProductionMoWidget. El backend
+ * (StationService.submitRecord) descuenta produccion real en Odoo cuando este
+ * campo trae una fila elegida y la unidad ya no tiene pasos de Ruta pendientes.
+ */
+export const PRODUCTION_MO_BINDING_KEY = "productionMo";
+
+/**
+ * Sesion de trabajo Start/Pausar/Bloquear/Finalizar sobre un work order de
+ * Odoo, en una estacion (ver conversacion 2026-08-05, WorkOrderSessionService
+ * en el backend). state: "RUNNING" | "PAUSED" | "BLOCKED" | "DONE".
+ */
+export interface WorkOrderSession {
+  id: number;
+  stationId: number;
+  odooWorkorderId: number;
+  odooWorkcenterId: number | null;
+  state: string;
+  operatorEmployeeId: number | null;
+  operatorName: string | null;
+  qtyProducing: number;
+  qtyProduced: number;
+  blockReasonOdooId: number | null;
+  blockReasonName: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface DataSourceColumn {
   key: string;
   labelKey: string;
@@ -106,6 +148,9 @@ export interface Station {
   name: string;
   description: string;
   enabled: boolean;
+  /** Work Center de Odoo (mrp.workcenter) al que pertenece fisicamente esta estacion, opcional -- ver conversacion 2026-08-04. */
+  odooWorkcenterId: number | null;
+  odooWorkcenterName: string | null;
   screens: Screen[];
   /** Posiciones fisicas de la estacion (p. ej. "R1", "Feeder-A"), definidas por el diseñador -- ver MaterialsDialog/StationMaterialsWidget. */
   positions: string[];

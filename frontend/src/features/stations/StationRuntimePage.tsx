@@ -398,6 +398,7 @@ export function StationRuntimePage() {
                     onResolvedRow={handleResolvedRow}
                     onError={handleWidgetError}
                     materialLoads={materialLoads}
+                    odooWorkcenterId={station.odooWorkcenterId}
                   />
                 </div>
               ))}

@@ -31,6 +31,14 @@ public class Station {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /** Id del Work Center Odoo (mrp.workcenter) al que pertenece fisicamente esta estacion (null = sin asociar). */
+    @Column(name = "odoo_workcenter_id")
+    private Long odooWorkcenterId;
+
+    /** Nombre del Work Center, cacheado solo para mostrarlo sin volver a llamar a Odoo (igual que Route.productName). */
+    @Column(name = "odoo_workcenter_name")
+    private String odooWorkcenterName;
+
     @OneToMany(mappedBy = "station", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC, id ASC")
     private List<StationScreen> screens = new ArrayList<>();

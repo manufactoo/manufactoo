@@ -119,7 +119,7 @@ public class RouteService {
             }
             // Si la estacion no captura el identificador de la ruta en ningun
             // widget, la ruta nunca se aplicaria de verdad al llegar aqui
-            // (StationService.validateRouteSequence la salta en silencio cuando
+            // (StationService.resolveIdentifierKeys la salta en silencio cuando
             // el envio no trae esa clave) -- mejor fallar aqui, al guardar, con
             // un mensaje claro, que descubrirlo en produccion. Solo se exige si
             // la ruta se guarda HABILITADA: una ruta deshabilitada no tiene

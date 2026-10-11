@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   IconArrowLeft,
   IconChevronLeft,
@@ -33,6 +33,9 @@ function eventLabel(events: MqttEvent[], eventId: number | null): string | null 
 }
 import {
   GRID_COLUMNS,
+  IDENTIFIER_BINDING_KEY,
+  PRODUCTION_MO_BINDING_KEY,
+  type DataSourceOption,
   type Screen,
   type Station,
   type StaticOption,
@@ -158,6 +161,10 @@ function defaultSize(type: string): { w: number; h: number } {
     case "STATION_HISTORY":
       // Como TABLE: necesita sitio para varias filas, no una sola linea.
       return { w: 12, h: 10 };
+    case "WORKORDER_ACTIONS":
+      // Varios botones + cantidad + cronometro: necesita mas que una linea,
+      // igual criterio que STATION_MATERIALS.
+      return { w: 6, h: 5 };
     default:
       return { w: 6, h: heightForFontSize("DROPDOWN", "value", "MD", false) ?? 1.5 };
   }
@@ -174,6 +181,18 @@ export function StationBuilderPage() {
   const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  // Aviso tutorial de "Crear desde Work Center" (ver StationsListTab.tsx):
+  // solo aparece justo despues de crear la estacion asi, nunca en visitas
+  // posteriores al Builder -- se descarta el parametro de la URL al
+  // cerrarlo, asi que un refresco de pagina tampoco lo vuelve a mostrar.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showWorkorderTip, setShowWorkorderTip] = React.useState(searchParams.get("tip") === "workorders");
+  function dismissWorkorderTip() {
+    setShowWorkorderTip(false);
+    const next = new URLSearchParams(searchParams);
+    next.delete("tip");
+    setSearchParams(next, { replace: true });
+  }
   const catalog = useStationsCatalogStore((s) => s.catalog);
   const fetchCatalog = useStationsCatalogStore((s) => s.fetch);
 
@@ -301,6 +320,7 @@ export function StationBuilderPage() {
     let config: Record<string, unknown> = {};
     if (descriptor.type === "BUTTON") config = { action: "NEXT", text: t("stations.types.BUTTON") };
     else if (descriptor.type === "LABEL") config = { text: t("stations.types.LABEL") };
+    else if (descriptor.type === "IMAGE") config = { imageSource: "STATIC", fit: "CONTAIN" };
     else if (descriptor.type === "TEXT_INPUT") config = { placeholder: t("stations.types.TEXT_INPUT") };
     const newWidget: EditableWidget = {
       _uid: uid(),
@@ -390,6 +410,94 @@ export function StationBuilderPage() {
     setWidgets((prev) => prev.map((w) => (w._uid === uidKey ? { ...w, ...patch } : w)));
   }
 
+  /**
+   * Marca uidKey como "el identificador de esta estacion" (ver conversacion
+   * 2026-08-04, Opcion A): fuerza su bindingKey a la clave fija
+   * IDENTIFIER_BINDING_KEY -- el label NO se toca, sigue mostrando el nombre
+   * descriptivo que tuviera ("Numero de serie", etc.) en "Vincular a" y demas
+   * sitios que usan label||bindingKey. Solo puede haber uno por estacion (a
+   * diferencia de updateWidget/setWidgets, que solo tocan la pantalla
+   * actual, esto recorre TODAS las pantallas via setScreens directamente,
+   * porque el widget que hay que "degradar" puede estar en otra pantalla).
+   * El degradado recibe una clave nueva libre (nunca se queda sin
+   * bindingKey), igual que si se hubiera creado ahora.
+   */
+  function setIdentifierWidget(uidKey: string) {
+    setScreens((prev) => {
+      const counters: Record<string, number> = {};
+      function freshKey(widgetType: string): string {
+        const slug = BINDING_KEY_SLUGS[widgetType] ?? widgetType.toLowerCase();
+        counters[slug] = counters[slug] === undefined
+          ? parseInt(nextBindingKey(prev, widgetType).split("_").pop() ?? "1", 10)
+          : counters[slug] + 1;
+        return `${slug}_${counters[slug]}`;
+      }
+      return prev.map((s) => ({
+        ...s,
+        widgets: s.widgets.map((w) => {
+          if (w._uid === uidKey) return { ...w, bindingKey: IDENTIFIER_BINDING_KEY };
+          if (w.bindingKey === IDENTIFIER_BINDING_KEY) return { ...w, bindingKey: freshKey(w.widgetType) };
+          return w;
+        }),
+      }));
+    });
+  }
+
+  /** Inverso de setIdentifierWidget: le devuelve a uidKey una clave normal (nunca se queda con la fija sin estar marcado). */
+  function clearIdentifierWidget(uidKey: string) {
+    setScreens((prev) => {
+      const widget = prev.flatMap((s) => s.widgets).find((w) => w._uid === uidKey);
+      if (!widget) return prev;
+      const fresh = nextBindingKey(prev, widget.widgetType);
+      return prev.map((s) => ({
+        ...s,
+        widgets: s.widgets.map((w) => (w._uid === uidKey ? { ...w, bindingKey: fresh } : w)),
+      }));
+    });
+  }
+
+  /**
+   * Igual que setIdentifierWidget/clearIdentifierWidget, pero para la clave
+   * fija PRODUCTION_MO_BINDING_KEY (la TABLA de Ordenes de fabricacion que
+   * decide contra que MO se descuenta produccion real en Odoo -- ver
+   * conversacion 2026-08-06). Exclusion mutua independiente de la del
+   * identificador: puede haber a la vez un widget "identificador" y otro
+   * "orden de fabricacion", cada uno con su propia clave fija.
+   */
+  function setProductionMoWidget(uidKey: string) {
+    setScreens((prev) => {
+      const counters: Record<string, number> = {};
+      function freshKey(widgetType: string): string {
+        const slug = BINDING_KEY_SLUGS[widgetType] ?? widgetType.toLowerCase();
+        counters[slug] = counters[slug] === undefined
+          ? parseInt(nextBindingKey(prev, widgetType).split("_").pop() ?? "1", 10)
+          : counters[slug] + 1;
+        return `${slug}_${counters[slug]}`;
+      }
+      return prev.map((s) => ({
+        ...s,
+        widgets: s.widgets.map((w) => {
+          if (w._uid === uidKey) return { ...w, bindingKey: PRODUCTION_MO_BINDING_KEY };
+          if (w.bindingKey === PRODUCTION_MO_BINDING_KEY) return { ...w, bindingKey: freshKey(w.widgetType) };
+          return w;
+        }),
+      }));
+    });
+  }
+
+  /** Inverso de setProductionMoWidget. */
+  function clearProductionMoWidget(uidKey: string) {
+    setScreens((prev) => {
+      const widget = prev.flatMap((s) => s.widgets).find((w) => w._uid === uidKey);
+      if (!widget) return prev;
+      const fresh = nextBindingKey(prev, widget.widgetType);
+      return prev.map((s) => ({
+        ...s,
+        widgets: s.widgets.map((w) => (w._uid === uidKey ? { ...w, bindingKey: fresh } : w)),
+      }));
+    });
+  }
+
   function updateLayout(uidKey: string, layout: WidgetLayout) {
     setWidgets((prev) => prev.map((w) => (w._uid === uidKey ? { ...w, layout } : w)));
   }
@@ -408,6 +516,8 @@ export function StationBuilderPage() {
         name: station.name,
         description: station.description,
         enabled: station.enabled,
+        odooWorkcenterId: station.odooWorkcenterId,
+        odooWorkcenterName: station.odooWorkcenterName,
         positions: station.positions,
         screens: screens.map((s, si) => ({
           id: s.id ?? null,
@@ -471,6 +581,20 @@ export function StationBuilderPage() {
           </Button>
         </div>
       </div>
+
+      {/* Aviso tutorial: solo tras crear la estacion desde el atajo "Crear
+          desde Work Center" (ver StationsListTab.tsx, ?tip=workorders).
+          Explica lo que ya se ha montado solo, en vez de dejar que el
+          usuario lo descubra por su cuenta abriendo Propiedades. */}
+      {showWorkorderTip && (
+        <div className="flex items-start gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+          <IconInfoCircle className="mt-0.5 size-4 shrink-0 text-primary" />
+          <p className="flex-1">{t("stations.builder.workorderTip")}</p>
+          <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={dismissWorkorderTip}>
+            <IconX className="size-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* Barra de pantallas (secuencia) */}
       <div className="flex items-center gap-2 overflow-x-auto">
@@ -571,6 +695,7 @@ export function StationBuilderPage() {
                   onSelect={setSelectedUid}
                   onLayoutChange={updateLayout}
                   stationId={id}
+                  odooWorkcenterId={station.odooWorkcenterId}
                 />
               ))}
               {dragState?.cell &&
@@ -624,10 +749,17 @@ export function StationBuilderPage() {
                 devices={inputDevices}
                 events={events.filter((e) => e.direction === "SUBSCRIBE")}
                 positions={station.positions}
+                odooWorkcenterId={station.odooWorkcenterId}
                 bindableWidgets={bindableWidgets.filter((b) => b.bindingKey !== selected.bindingKey)}
                 suggestBindingKey={() => nextBindingKey(screens, selected.widgetType)}
                 onChange={(patch) => updateWidget(selected._uid, patch)}
                 onDelete={() => removeWidget(selected._uid)}
+                onToggleIdentifier={(checked) =>
+                  checked ? setIdentifierWidget(selected._uid) : clearIdentifierWidget(selected._uid)
+                }
+                onToggleProductionMo={(checked) =>
+                  checked ? setProductionMoWidget(selected._uid) : clearProductionMoWidget(selected._uid)
+                }
               />
             ) : (
               <p className="text-sm text-muted-foreground">{t("stations.builder.noSelection")}</p>
@@ -650,6 +782,7 @@ function WidgetBox({
   onSelect,
   onLayoutChange,
   stationId,
+  odooWorkcenterId,
 }: {
   widget: EditableWidget;
   selected: boolean;
@@ -663,6 +796,8 @@ function WidgetBox({
   onLayoutChange: (uid: string, layout: WidgetLayout) => void;
   /** Filtro por rutas de ordenes de fabricacion en la previsualizacion del builder (undefined en estacion nueva sin guardar). */
   stationId?: string;
+  /** Para WORKORDER_ACTIONS -- ver conversacion 2026-08-05. */
+  odooWorkcenterId?: number | null;
 }) {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const drag = React.useRef<
@@ -823,6 +958,7 @@ function WidgetBox({
             stationId={stationId}
             stationName={stationName}
             screenTitle={screenTitle}
+            odooWorkcenterId={odooWorkcenterId}
           />
         </div>
 
@@ -1100,10 +1236,13 @@ function PropertiesPanel({
   devices,
   events,
   positions,
+  odooWorkcenterId,
   bindableWidgets,
   suggestBindingKey,
   onChange,
   onDelete,
+  onToggleIdentifier,
+  onToggleProductionMo,
 }: {
   widget: EditableWidget;
   descriptor: WidgetDescriptor | undefined;
@@ -1113,18 +1252,61 @@ function PropertiesPanel({
   devices: Device[];
   events: MqttEvent[];
   positions: string[];
+  odooWorkcenterId: number | null | undefined;
   bindableWidgets: BindableWidget[];
   suggestBindingKey: () => string;
   onChange: (patch: Partial<EditableWidget>) => void;
   onDelete: () => void;
+  onToggleIdentifier: (checked: boolean) => void;
+  onToggleProductionMo: (checked: boolean) => void;
 }) {
   const { t } = useTranslation("dashboard");
   const dsType = widget.dataSource.type ?? "";
   const assetUrl = useStationAssetUrl(widget.config.assetId as number | undefined);
   const [uploading, setUploading] = React.useState(false);
+  // Operaciones (mrp.routing.workcenter) del Work Center de esta estacion --
+  // solo se piden cuando hace falta (TABLE de ODOO_WORKORDERS), para el
+  // picker "Estrechar a una operacion concreta" (config.operationId). Sin
+  // Work Center asociado a la estacion, se piden todas (workcenterId=undefined).
+  const [operationOptions, setOperationOptions] = React.useState<DataSourceOption[]>([]);
+  const needsOperationOptions = widget.widgetType === "TABLE" && widget.dataSource.type === "ODOO_WORKORDERS";
+  React.useEffect(() => {
+    if (!needsOperationOptions) return;
+    apiClient
+      .get<DataSourceOption[]>("/api/stations/data-source-operations", {
+        params: odooWorkcenterId ? { workcenterId: odooWorkcenterId } : {},
+      })
+      .then(({ data }) => setOperationOptions(data))
+      .catch(() => setOperationOptions([]));
+  }, [needsOperationOptions, odooWorkcenterId]);
   const selectionMode = (widget.config.selectionMode as string) ?? "NONE";
   const selectableTable = widget.widgetType === "TABLE" && selectionMode !== "NONE";
   const needsBinding = Boolean(descriptor?.requiresBinding) || selectableTable;
+  // Ver conversacion 2026-08-04 (Opcion A): la clave fija IDENTIFIER_BINDING_KEY
+  // marca "este es el widget que identifica la unidad fisica en esta
+  // estacion" -- solo puede haber uno por estacion (exclusion mutua en
+  // setIdentifierWidget, StationBuilderPage). El label no se toca al marcar.
+  const isIdentifier = widget.bindingKey === IDENTIFIER_BINDING_KEY;
+
+  // Igual que isIdentifier, pero para PRODUCTION_MO_BINDING_KEY -- solo tiene
+  // sentido en un widget que resuelva a UNA orden de fabricacion concreta
+  // (ver conversacion 2026-08-07): es el valor que StationService usa para
+  // saber contra que MO descontar produccion real en Odoo. Tres formas
+  // validas de elegirla, las mismas que ya existen para cualquier otro dato
+  // de Odoo en la app -- limitarlo antes solo a TABLA fue un fallo:
+  // - DROPDOWN: siempre selecciona una unica opcion (no tiene selectionMode,
+  //   esa propiedad es solo de TABLE).
+  // - TABLE con selectionMode SINGLE.
+  // - TEXT_INPUT: el operario escanea/teclea la referencia de la MO (p. ej.
+  //   "WH/MO/00001") y se valida contra Odoo por "display_name" -- ya existe
+  //   ese lookup column en DataSourceResolver, mismo mecanismo que el resto
+  //   de campos de texto validados (identificador, operario...).
+  const isProductionMo = widget.bindingKey === PRODUCTION_MO_BINDING_KEY;
+  const canBeProductionMo =
+    dsType === "ODOO_MANUFACTURING_ORDERS" &&
+    (widget.widgetType === "DROPDOWN" ||
+      widget.widgetType === "TEXT_INPUT" ||
+      (widget.widgetType === "TABLE" && selectionMode === "SINGLE"));
 
   // sourceKindOverride permite mostrar el sub-selector (dispositivo/evento) en
   // cuanto se elige el tipo de origen, aunque todavia no se haya escogido un
@@ -1163,6 +1345,9 @@ function PropertiesPanel({
     boundTarget?.dataSourceType && boundTarget.dataSourceType !== "STATIC_LIST" && !boundTargetIsMulti
       ? displayColumns[boundTarget.dataSourceType] ?? []
       : [];
+  const imageBoundFieldOptions = boundFieldOptions.filter((col) =>
+    col.toLowerCase().startsWith("image_"),
+  );
 
   function setConfig(key: string, value: unknown) {
     onChange({ config: { ...widget.config, [key]: value } });
@@ -1188,20 +1373,103 @@ function PropertiesPanel({
 
   return (
     <div className="space-y-4">
-      {/* Imagen: subir fichero */}
+      {/* Imagen: estatica subida o vinculada a otro widget */}
       {widget.widgetType === "IMAGE" && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("stations.widget.image")}</Label>
-          {assetUrl && <img src={assetUrl} alt="" className="max-h-28 rounded border object-contain" />}
-          <Input
-            type="file"
-            accept="image/*"
-            disabled={uploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadImage(f);
-            }}
-          />
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <FieldLabel text={t("stations.widget.imageSource")} hint={t("stations.widget.imageSourceHint")} />
+            <Select
+              value={(widget.config.imageSource as string) || "STATIC"}
+              onValueChange={(v) =>
+                onChange({
+                  config: {
+                    ...widget.config,
+                    imageSource: v,
+                    assetId: v === "BOUND" ? undefined : widget.config.assetId,
+                    boundTo: v === "BOUND" ? widget.config.boundTo : undefined,
+                    boundField: v === "BOUND" ? widget.config.boundField : undefined,
+                  },
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="STATIC">{t("stations.widget.imageSourceStatic")}</SelectItem>
+                <SelectItem value="BOUND">{t("stations.widget.imageSourceBound")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(widget.config.imageSource as string) !== "BOUND" ? (
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t("stations.widget.image")}</Label>
+              {assetUrl && <img src={assetUrl} alt="" className="max-h-28 rounded border object-contain" />}
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={uploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadImage(f);
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <FieldLabel text={t("stations.widget.boundTo")} hint={t("stations.widget.boundToHint")} />
+                <Select
+                  value={boundTo ?? "NONE"}
+                  onValueChange={(v) => {
+                    const nextBoundTo = v === "NONE" ? undefined : v;
+                    const nextTarget = nextBoundTo
+                      ? bindableWidgets.find((b) => b.bindingKey === nextBoundTo)
+                      : undefined;
+                    const nextImageCols =
+                      nextTarget?.dataSourceType && nextTarget.dataSourceType !== "STATIC_LIST"
+                        ? (displayColumns[nextTarget.dataSourceType] ?? []).filter((col) =>
+                            col.toLowerCase().startsWith("image_"),
+                          )
+                        : [];
+                    onChange({
+                      config: {
+                        ...widget.config,
+                        boundTo: nextBoundTo,
+                        boundField: nextImageCols[0],
+                      },
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">{t("stations.widget.boundToNone")}</SelectItem>
+                    {bindableWidgets.map((b) => (
+                      <SelectItem key={b.bindingKey} value={b.bindingKey}>
+                        {b.label || b.bindingKey}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {boundTarget && (
+                <div className="space-y-1.5">
+                  {imageBoundFieldOptions.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("stations.widget.imageBoundToField", { field: imageBoundFieldOptions[0] })}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-destructive">
+                      {t("stations.widget.imageNoImageField")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -1210,8 +1478,33 @@ function PropertiesPanel({
           <FieldLabel text={t("stations.widget.bindingKey")} hint={t("stations.widget.bindingKeyHint")} />
           <Input
             value={widget.bindingKey ?? ""}
+            disabled={isIdentifier || isProductionMo}
             onChange={(e) => onChange({ bindingKey: e.target.value, label: e.target.value })}
           />
+          <div className="flex items-center gap-2 pt-0.5">
+            <Checkbox
+              id="widget-is-identifier"
+              checked={isIdentifier}
+              onCheckedChange={(v) => onToggleIdentifier(v === true)}
+            />
+            <Label htmlFor="widget-is-identifier" className="text-xs font-normal">
+              {t("stations.widget.isIdentifier")}
+            </Label>
+            <InfoTooltip text={t("stations.widget.isIdentifierHint")} />
+          </div>
+          {(canBeProductionMo || isProductionMo) && (
+            <div className="flex items-center gap-2 pt-0.5">
+              <Checkbox
+                id="widget-is-production-mo"
+                checked={isProductionMo}
+                onCheckedChange={(v) => onToggleProductionMo(v === true)}
+              />
+              <Label htmlFor="widget-is-production-mo" className="text-xs font-normal">
+                {t("stations.widget.isProductionMo")}
+              </Label>
+              <InfoTooltip text={t("stations.widget.isProductionMoHint")} />
+            </div>
+          )}
         </div>
       )}
 
@@ -1342,6 +1635,40 @@ function PropertiesPanel({
             })}
           </div>
         </div>
+      )}
+
+      {/* Cola de trabajo de la estacion: se filtra sola al Work Center
+          asociado a la estacion (ver formulario de Estaciones) -- sin
+          casilla, automatico (ver conversacion 2026-08-04: "queremos que sea
+          automatico"; si la estacion no tiene Work Center, se enseñan todas,
+          fail-open). Solo queda la opcion de estrechar a UNA Operacion
+          concreta de ese Work Center -- p. ej. una estacion reutilizada para
+          "Amasado masa madre" Y "Amasado final" (mismo work center, dos
+          tareas) puede dejarlo abierto para que el operario elija; una
+          estacion de una sola tarea puede estrecharlo y el operario no
+          elige nada. */}
+      {widget.widgetType === "TABLE" && dsType === "ODOO_WORKORDERS" && (
+        <>
+          <div className="space-y-1.5">
+            <FieldLabel text={t("stations.widget.operationId")} hint={t("stations.widget.operationIdHint")} />
+            <Select
+              value={(widget.config.operationId as string | undefined) ?? "ANY"}
+              onValueChange={(v) => setConfig("operationId", v === "ANY" ? undefined : v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ANY">{t("stations.widget.operationIdAny")}</SelectItem>
+                {operationOptions.map((op) => (
+                  <SelectItem key={op.value} value={op.value}>
+                    {op.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
       )}
 
       {/* Solo tiene sentido para ordenes de fabricacion: limita la lista (o,
@@ -1690,6 +2017,46 @@ function PropertiesPanel({
         </>
       )}
 
+      {/* WORKORDER_ACTIONS necesita SIEMPRE una tabla de work orders vinculada
+          (no tiene alternativa de texto fijo como LABEL) -- reutiliza el
+          mismo mecanismo boundTo, pero restringido a tablas de
+          ODOO_WORKORDERS con seleccion SINGLE (las unicas de las que tiene
+          sentido leer "el work order elegido ahora mismo"). Ver conversacion
+          2026-08-05. */}
+      {widget.widgetType === "WORKORDER_ACTIONS" && (() => {
+        const workorderTables = bindableWidgets.filter(
+          (b) => b.dataSourceType === "ODOO_WORKORDERS" && b.selectionMode === "SINGLE",
+        );
+        return (
+          <div className="space-y-1.5">
+            <FieldLabel text={t("stations.widget.boundTo")} hint={t("stations.widget.workorderActionsBoundToHint")} />
+            {workorderTables.length === 0 ? (
+              // Sin esto, el desplegable se queda mudo con solo "Ninguno" --
+              // justo cuando el diseñador mas necesita que le digan por que
+              // (ver conversacion 2026-08-05, friccion detectada).
+              <p className="text-xs text-muted-foreground">{t("stations.widget.workorderActionsNoTable")}</p>
+            ) : (
+              <Select
+                value={boundTo ?? "NONE"}
+                onValueChange={(v) => setConfig("boundTo", v === "NONE" ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">{t("stations.widget.boundToNone")}</SelectItem>
+                  {workorderTables.map((b) => (
+                    <SelectItem key={b.bindingKey} value={b.bindingKey}>
+                      {b.label || b.bindingKey}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Que columnas del historial se ven -- las disponibles son los bindingKey
           de TODA la estacion que capturan dato (misma lista que "Vincular a"
           de las Etiquetas, ya calculada en bindableWidgets), no un catalogo
@@ -1763,10 +2130,17 @@ function PropertiesPanel({
         </div>
         ) : (
         <div key={field.key} className="space-y-1.5">
-          <Label className="text-xs">
-            {t(field.labelKey, { defaultValue: field.key })}
-            {field.required && " *"}
-          </Label>
+          <div className="flex items-center gap-1">
+            <Label className="text-xs">
+              {t(field.labelKey, { defaultValue: field.key })}
+              {field.required && " *"}
+            </Label>
+            {/* Mismo criterio que la rama CHECKBOX de arriba: solo se pinta si existe "<field>Hint". */}
+            {(() => {
+              const hint = t(`${field.labelKey}Hint`, { defaultValue: "" });
+              return hint ? <InfoTooltip text={hint} /> : null;
+            })()}
+          </div>
           {field.type === "SELECT" ? (
             <Select
               value={(widget.config[field.key] as string) ?? ""}

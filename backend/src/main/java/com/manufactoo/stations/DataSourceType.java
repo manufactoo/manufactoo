@@ -13,5 +13,11 @@ public enum DataSourceType {
     ODOO_OPERATORS,
     ODOO_BOMS,
     /** Numeros de serie/lote (stock.lot): la unidad fisica concreta que se esta fabricando. */
-    ODOO_SERIALS
+    ODOO_SERIALS,
+    /** Work Centers (mrp.workcenter): el recurso/maquina/linea al que puede asociarse una estacion. */
+    ODOO_WORKCENTERS,
+    /** Ordenes de trabajo (mrp.workorder): instancia concreta de una operacion para una orden de fabricacion. */
+    ODOO_WORKORDERS,
+    /** Motivos de bloqueo (mrp.workcenter.productivity.loss, solo los "manual"=true): para el selector de motivo del widget WORKORDER_ACTIONS. */
+    ODOO_LOSS_REASONS
 }

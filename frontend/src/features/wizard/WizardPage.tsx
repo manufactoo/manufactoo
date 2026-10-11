@@ -27,7 +27,12 @@ export function WizardPage() {
   return (
     <div className="flex min-h-svh flex-col items-center bg-muted/30 px-4 py-10">
       <div className="mb-8 flex items-center gap-2">
-        <img src="/manufactoo-logo.png" alt="Manufactoo" className="size-8" />
+        {/* Dos PNG, una por tema -- Tailwind alterna con la clase .dark que pone
+            ThemeProvider en <html> (ver theme-provider.tsx), no con
+            prefers-color-scheme directo, para respetar el tema elegido por el
+            usuario y no solo el del SO. */}
+        <img src="/manufactoo-logo.png" alt="Manufactoo" className="size-8 dark:hidden" />
+        <img src="/manufactoo-logo-dark.png" alt="Manufactoo" className="hidden size-8 dark:block" />
         <span className="text-xl font-semibold">Manufactoo</span>
       </div>
 

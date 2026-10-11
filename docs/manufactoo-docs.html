@@ -1,0 +1,1379 @@
+<meta charset="utf-8">
+<title>Manufactoo — Documentación / Documentation</title>
+<style>
+  :root {
+    --paper: #F5F7FA;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1F5;
+    --ink: #161C24;
+    --muted: #5B6672;
+    --line: #DCE3EA;
+    --accent: #2C5D8C;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E3ECF5;
+    --amber: #8A5D0C;
+    --amber-soft: #FBF0D9;
+    --amber-line: #E7CE96;
+    --code-bg: #EDF1F5;
+    --shadow: 0 1px 2px rgba(22,28,36,0.06), 0 10px 28px rgba(22,28,36,0.07);
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-cond: "Archivo Narrow", "Oswald", "Roboto Condensed", "Arial Narrow", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --topbar-h: 56px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0B0F14;
+      --surface: #121821;
+      --surface-2: #0E1319;
+      --ink: #E7ECF2;
+      --muted: #8B96A5;
+      --line: #212B36;
+      --accent: #6AA6DE;
+      --accent-ink: #0B1520;
+      --accent-soft: #16283B;
+      --amber: #E8B54C;
+      --amber-soft: #2A2210;
+      --amber-line: #4A3B18;
+      --code-bg: #0E1319;
+      --shadow: 0 1px 2px rgba(0,0,0,0.5), 0 10px 28px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0B0F14; --surface: #121821; --surface-2: #0E1319; --ink: #E7ECF2; --muted: #8B96A5;
+    --line: #212B36; --accent: #6AA6DE; --accent-ink: #0B1520; --accent-soft: #16283B;
+    --amber: #E8B54C; --amber-soft: #2A2210; --amber-line: #4A3B18; --code-bg: #0E1319;
+    --shadow: 0 1px 2px rgba(0,0,0,0.5), 0 10px 28px rgba(0,0,0,0.55);
+  }
+  :root[data-theme="light"] {
+    --paper: #F5F7FA; --surface: #FFFFFF; --surface-2: #EDF1F5; --ink: #161C24; --muted: #5B6672;
+    --line: #DCE3EA; --accent: #2C5D8C; --accent-ink: #FFFFFF; --accent-soft: #E3ECF5;
+    --amber: #8A5D0C; --amber-soft: #FBF0D9; --amber-line: #E7CE96; --code-bg: #EDF1F5;
+    --shadow: 0 1px 2px rgba(22,28,36,0.06), 0 10px 28px rgba(22,28,36,0.07);
+  }
+  /*
+   * Interruptor propio de la pagina (boton en la topbar), independiente del
+   * tema del visor de Claude. #doc-root[data-theme] tiene mas especificidad
+   * que :root[data-theme] (un id siempre gana a una pseudo-clase, pase lo
+   * que pase con el resto de la selectora), asi que si el usuario elige algo
+   * aqui dentro, gana sobre lo que diga el host -- pero si no ha tocado el
+   * boton, #doc-root no tiene el atributo y simplemente hereda de :root como
+   * siempre (sistema operativo o el propio host).
+   */
+  #doc-root[data-theme="dark"] {
+    --paper: #0B0F14; --surface: #121821; --surface-2: #0E1319; --ink: #E7ECF2; --muted: #8B96A5;
+    --line: #212B36; --accent: #6AA6DE; --accent-ink: #0B1520; --accent-soft: #16283B;
+    --amber: #E8B54C; --amber-soft: #2A2210; --amber-line: #4A3B18; --code-bg: #0E1319;
+    --shadow: 0 1px 2px rgba(0,0,0,0.5), 0 10px 28px rgba(0,0,0,0.55);
+  }
+  #doc-root[data-theme="light"] {
+    --paper: #F5F7FA; --surface: #FFFFFF; --surface-2: #EDF1F5; --ink: #161C24; --muted: #5B6672;
+    --line: #DCE3EA; --accent: #2C5D8C; --accent-ink: #FFFFFF; --accent-soft: #E3ECF5;
+    --amber: #8A5D0C; --amber-soft: #FBF0D9; --amber-line: #E7CE96; --code-bg: #EDF1F5;
+    --shadow: 0 1px 2px rgba(22,28,36,0.06), 0 10px 28px rgba(22,28,36,0.07);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  /*
+   * El fondo/color de texto se pintan aqui, en #doc-root, no en body: el
+   * interruptor de tema (data-theme) vive en #doc-root, y una custom
+   * property redefinida ahi solo cae en cascada hacia SUS descendientes,
+   * nunca hacia arriba, a un body que es su ancestro. Si el fondo se
+   * pintara en body, se quedaria siempre en el valor de :root y el
+   * interruptor no se veria en la zona de contenido.
+   */
+  #doc-root {
+    display: block;
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  ::selection { background: var(--accent-soft); }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  h1, h2, h3, h4 { font-family: var(--font-body); font-weight: 700; line-height: 1.2; text-wrap: balance; margin: 0; }
+  .eyebrow {
+    font-family: var(--font-cond);
+    font-stretch: condensed;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    height: var(--topbar-h);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .brand-logo {
+    height: 28px; width: auto; flex-shrink: 0; display: block;
+  }
+  .brand-logo-dark { display: none; }
+  @media (prefers-color-scheme: dark) {
+    .brand-logo-light { display: none; }
+    .brand-logo-dark { display: block; }
+  }
+  :root[data-theme="dark"] .brand-logo-light,
+  #doc-root[data-theme="dark"] .brand-logo-light { display: none; }
+  :root[data-theme="dark"] .brand-logo-dark,
+  #doc-root[data-theme="dark"] .brand-logo-dark { display: block; }
+  :root[data-theme="light"] .brand-logo-dark,
+  #doc-root[data-theme="light"] .brand-logo-dark { display: none; }
+  :root[data-theme="light"] .brand-logo-light,
+  #doc-root[data-theme="light"] .brand-logo-light { display: block; }
+  .brand small { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+
+  .topbar-right { display: flex; align-items: center; gap: 0.9rem; }
+  .lang-select {
+    font-family: var(--font-body); font-size: 0.85rem; font-weight: 600;
+    color: var(--ink); background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 7px; padding: 0.4rem 1.9rem 0.4rem 0.7rem; cursor: pointer;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .theme-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px;
+    color: var(--ink); cursor: pointer; padding: 0;
+  }
+  .theme-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  .theme-toggle svg { width: 16px; height: 16px; }
+  /*
+   * El icono lo decide JS (atributo data-mode en el propio boton), no el CSS
+   * en cascada: "que tema esta activo ahora mismo" depende de tres fuentes
+   * posibles (eleccion propia guardada / data-theme del host / preferencia
+   * del sistema) y solo JS puede resolver esa prioridad de verdad -- ver
+   * updateToggleIcon() mas abajo.
+   */
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  .theme-toggle[data-mode="dark"] .icon-sun { display: block; }
+  .theme-toggle[data-mode="light"] .icon-moon { display: block; }
+
+  /* ---------- Shell ---------- */
+  .shell { display: flex; align-items: flex-start; }
+
+  .sidenav {
+    width: 280px; flex-shrink: 0;
+    position: sticky; top: var(--topbar-h);
+    height: calc(100vh - var(--topbar-h));
+    overflow-y: auto;
+    background: var(--surface-2);
+    border-right: 1px solid var(--line);
+    padding: 1.25rem 0.9rem 3rem;
+  }
+  .navgroup { margin-bottom: 1.4rem; }
+  .navgroup-title {
+    font-family: var(--font-cond); text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 0.68rem; font-weight: 700; color: var(--muted);
+    padding: 0 0.6rem; margin-bottom: 0.35rem;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .navgroup-title .rule { flex: 1; height: 1px; background: var(--line); }
+  .navlink {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    padding: 0.4rem 0.6rem; border-radius: 7px;
+    font-size: 0.875rem; font-weight: 500; color: var(--ink); text-decoration: none;
+    border-left: 2px solid transparent;
+  }
+  .navlink .num { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); flex-shrink: 0; }
+  .navlink:hover { background: var(--surface); }
+  .navlink.active { background: var(--accent-soft); color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
+  .navlink.future { color: var(--muted); font-style: italic; }
+  .navgroup-note {
+    font-size: 0.75rem; color: var(--muted); padding: 0.3rem 0.6rem 0; line-height: 1.4;
+  }
+
+  .content { flex: 1; min-width: 0; padding: 0 0 6rem; }
+  /*
+   * Pegado a la izquierda, ancho completo: sin max-width ni margin:auto --
+   * la seccion ocupa TODO el ancho que .content tenga disponible junto al
+   * sidebar (ver conversacion 2026-08-08: version anterior centraba con un
+   * tope de 1240px, dejaba hueco muerto a los lados en pantallas anchas).
+   * Todo el texto corrido (.prose, .lead, .note, .warn) tambien usa el ancho
+   * completo; no hay limite de medida de lectura central.
+   */
+  .section {
+    display: none;
+    padding: 2.4rem clamp(1.25rem, 3vw, 3rem) 0;
+  }
+  .section.is-active { display: block; }
+  .section > .eyebrow { margin-bottom: 0.4rem; }
+  .section h2 { font-size: 1.65rem; margin-bottom: 0.9rem; }
+  .section .lead { font-size: 1.09rem; color: var(--muted); margin-bottom: 1.6rem; }
+  .prose p { margin: 0 0 1rem; }
+  .prose h3 { font-size: 1.08rem; margin: 1.8rem 0 0.6rem; }
+  .prose h3:first-child { margin-top: 0; }
+  .prose ul, .prose ol { padding-left: 1.25rem; margin: 0 0 1rem; }
+  .prose li { margin-bottom: 0.4rem; }
+  .prose li::marker { color: var(--muted); }
+
+  code, .k {
+    font-family: var(--font-mono); font-size: 0.86em;
+    background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 0.05em 0.4em;
+  }
+
+  .chip {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent); border-radius: 5px;
+    padding: 0.15rem 0.5rem; white-space: nowrap;
+  }
+
+  .note, .warn {
+    border-radius: 10px; padding: 0.9rem 1.1rem; margin: 1.4rem 0;
+    font-size: 0.92rem;
+  }
+  .note { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); }
+  .warn { background: var(--amber-soft); border: 1px solid var(--amber-line); }
+  .note strong, .warn strong { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: var(--font-cond); margin-bottom: 0.3rem; }
+  .note strong { color: var(--accent); }
+  .warn strong { color: var(--amber); }
+
+  .table-wrap { overflow-x: auto; margin: 1.4rem 0; border: 1px solid var(--line); border-radius: 10px; }
+  /*
+   * color: inherit es necesario aqui, no decorativo -- el propio elemento
+   * <table> resuelve su color a negro por defecto del navegador en vez de
+   * heredar de su contenedor (comprobado en vivo: .table-wrap ya tenia el
+   * --ink correcto, pero <table> lo rompia y todo texto sin color propio
+   * dentro -- td simples, thead ya cubierto aparte -- salia negro sobre
+   * fondo oscuro, invisible). Ver conversacion 2026-08-08.
+   */
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; min-width: 560px; color: inherit; }
+  thead th {
+    text-align: left; font-family: var(--font-cond); text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 0.7rem; font-weight: 700; color: var(--muted);
+    background: var(--surface-2); padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line);
+  }
+  tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.mono { font-family: var(--font-mono); font-size: 0.82rem; white-space: nowrap; color: var(--accent); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap: 0.9rem; margin: 1.6rem 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.1rem 1.15rem; box-shadow: var(--shadow);
+  }
+  .card h4 { font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .card p { font-size: 0.85rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.2rem; margin: 1.2rem 0; font-size: 0.9rem; }
+  .kv dt { font-weight: 700; }
+  .kv dd { margin: 0; color: var(--muted); }
+
+  .steps { list-style: none; padding: 0; margin: 1.6rem 0; counter-reset: step; }
+  .steps li {
+    counter-increment: step; position: relative; padding: 0 0 1.3rem 2.6rem; margin: 0;
+  }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: -0.05rem;
+    width: 1.9rem; height: 1.9rem; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .steps li::after {
+    content: ""; position: absolute; left: 0.95rem; top: 1.9rem; bottom: -0.1rem; width: 1px;
+    background: var(--line);
+  }
+  .steps li:last-child::after { display: none; }
+  .steps strong { display: block; margin-bottom: 0.15rem; }
+  .steps span { color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- Overview hero ---------- */
+  #overview {
+    position: relative; padding-top: 3.6rem; padding-bottom: 1rem;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 34px 34px;
+    background-position: -1px -1px;
+  }
+  /* Sin max-width propio: el texto del hero ocupa todo el ancho disponible,
+     asi que dejar que hero-inner ocupe toda la seccion solo deja que la fila
+     de badges respire mas. */
+  #overview h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); margin-bottom: 1rem; }
+  #overview .lead { font-size: 1.15rem; }
+  .hero-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.4rem 0 0.4rem; }
+  .hero-badge {
+    font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--muted);
+    border: 1px solid var(--line); background: var(--surface); border-radius: 100px; padding: 0.3rem 0.7rem;
+  }
+
+  footer {
+    padding: 1.5rem clamp(1.25rem, 3vw, 3rem) 3rem;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: 0.82rem;
+  }
+
+  /* ---------- Breadcrumb + navegacion prev/next (paginas reales) ---------- */
+  .breadcrumb {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
+    padding: 1.1rem clamp(1.25rem, 3vw, 3rem) 0;
+    font-family: var(--font-cond); font-size: 0.74rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--accent); text-decoration: underline; }
+  .breadcrumb .crumb-current { color: var(--ink); }
+  .breadcrumb .crumb-sep { color: var(--line); }
+
+  .page-nav {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    padding: 2.4rem clamp(1.25rem, 3vw, 3rem) 0;
+    margin-top: 2.4rem; border-top: 1px solid var(--line);
+  }
+  .page-nav-link {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    padding: 0.9rem 1.1rem; border: 1px solid var(--line); border-radius: 10px;
+    text-decoration: none; color: var(--ink); min-width: 0;
+  }
+  .page-nav-link:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); background: var(--accent-soft); }
+  .page-nav-link .nav-dir {
+    font-family: var(--font-cond); font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+  .page-nav-link .nav-title { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-nav-link.next { text-align: right; align-items: flex-end; grid-column: 2; }
+  .page-nav-link.prev-empty, .page-nav-link.next-empty { visibility: hidden; }
+  @media (max-width: 560px) { .page-nav { grid-template-columns: 1fr; } .page-nav-link.next { grid-column: 1; text-align: left; align-items: flex-start; } }
+
+  @media (max-width: 860px) {
+    .shell { flex-direction: column; }
+    .sidenav {
+      position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--line);
+      padding: 0.7rem 0.9rem;
+    }
+    .navgroup { margin-bottom: 0; }
+    .sidenav > .navgroup { display: none; } /* collapse full tree on mobile, show compact jump list instead */
+    .mobile-jump { display: block; }
+  }
+  .mobile-jump { display: none; width: 100%; font-family: var(--font-body); font-size: 0.85rem; padding: 0.5rem;
+    border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+  /*
+   * Conmutador de idioma: !important en las dos reglas de abajo a proposito.
+   * Sin el, un selector de componente mas especifico que "[data-lang]" solo
+   * por casualidad (p. ej. ".note strong", 2 selectores) le gana la
+   * especificidad a esta regla (1 selector) y deja los dos idiomas visibles
+   * a la vez -- ya paso una vez con las cajas .note/.warn. Marcando ambas
+   * reglas important, esta es la unica pareja de reglas de toda la hoja que
+   * decide "display" de un data-lang, pase lo que pase en el resto del CSS
+   * (presente o futuro).
+   */
+  [data-lang] { display: none !important; }
+  #doc-root[data-doclang="es"] [data-lang="es"] { display: block !important; }
+  #doc-root[data-doclang="en"] [data-lang="en"] { display: block !important; }
+  #doc-root[data-doclang="es"] span[data-lang="es"],
+  #doc-root[data-doclang="en"] span[data-lang="en"] { display: inline !important; }
+  /* Elementos que NO deben volver a "block" -- romperia su rol en la tabla o la lista de definicion. */
+  #doc-root[data-doclang="es"] td[data-lang="es"], #doc-root[data-doclang="es"] th[data-lang="es"],
+  #doc-root[data-doclang="en"] td[data-lang="en"], #doc-root[data-doclang="en"] th[data-lang="en"] { display: table-cell !important; }
+  #doc-root[data-doclang="es"] li[data-lang="es"], #doc-root[data-doclang="en"] li[data-lang="en"] { display: list-item !important; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .navlink, .lang-select { transition: background 0.15s ease, color 0.15s ease; }
+  }
+</style>
+
+<div id="doc-root" data-doclang="es">
+
+<div class="topbar">
+  <div class="brand">
+    <img class="brand-logo brand-logo-light" src="../frontend/public/manufactoo-logo.png" alt="Manufactoo" aria-hidden="true">
+    <img class="brand-logo brand-logo-dark" src="../frontend/public/manufactoo-logo-dark.png" alt="Manufactoo" aria-hidden="true">
+    <span>Manufactoo <small>DOCS</small></span>
+  </div>
+  <div class="topbar-right">
+    <select class="lang-select" id="lang-picker" aria-label="Idioma / Language">
+      <option value="es">Español</option>
+      <option value="en">English</option>
+    </select>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema claro/oscuro · Toggle light/dark theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="shell">
+  <select class="mobile-jump" id="mobile-jump" aria-label="Ir a sección / Jump to section">
+    <option value="overview" data-es="Qué es Manufactoo" data-en="What is Manufactoo"></option>
+    <option value="getting-started" data-es="Primeros pasos" data-en="Getting started"></option>
+    <option value="core-dashboard" data-es="Panel principal" data-en="Dashboard"></option>
+    <option value="core-master-data" data-es="Datos maestros" data-en="Master data"></option>
+    <option value="core-apps" data-es="Aplicaciones" data-en="Apps"></option>
+    <option value="core-settings" data-es="Configuración" data-en="Settings"></option>
+    <option value="core-security" data-es="Seguridad y conexión" data-en="Security &amp; connection"></option>
+    <option value="app-traceability" data-es="App: Trazabilidad y Genealogía" data-en="App: Traceability &amp; Genealogy"></option>
+    <option value="devices" data-es="Dispositivos y eventos" data-en="Devices &amp; events"></option>
+    <option value="station-builder" data-es="Diseñador de estaciones" data-en="Station builder"></option>
+    <option value="runtime-player" data-es="Ejecución y Manufactoo Player" data-en="Runtime &amp; Manufactoo Player"></option>
+    <option value="routes" data-es="Rutas" data-en="Routes"></option>
+    <option value="materials" data-es="Materiales" data-en="Materials"></option>
+    <option value="work-centers" data-es="Work Centers" data-en="Work Centers"></option>
+    <option value="production-tracking" data-es="Producción en Odoo" data-en="Production tracking"></option>
+    <option value="genealogy" data-es="Genealogía" data-en="Genealogy"></option>
+    <option value="roadmap" data-es="Próximas apps" data-en="More apps"></option>
+    <option value="glossary" data-es="Glosario" data-en="Glossary"></option>
+  </select>
+
+  <aside class="sidenav" aria-label="Navegación de documentación">
+    <nav class="navgroup">
+      <div class="navgroup-title"><span data-lang="es">General</span><span data-lang="en">General</span><span class="rule"></span></div>
+      <a class="navlink" href="#overview"><span class="num">00</span><span data-lang="es">Qué es Manufactoo</span><span data-lang="en">What is Manufactoo</span></a>
+      <a class="navlink" href="#getting-started"><span class="num">01</span><span data-lang="es">Primeros pasos</span><span data-lang="en">Getting started</span></a>
+      <a class="navlink" href="#core-dashboard"><span class="num">02</span><span data-lang="es">Panel principal</span><span data-lang="en">Dashboard</span></a>
+      <a class="navlink" href="#core-master-data"><span class="num">03</span><span data-lang="es">Datos maestros</span><span data-lang="en">Master data</span></a>
+      <a class="navlink" href="#core-apps"><span class="num">04</span><span data-lang="es">Aplicaciones</span><span data-lang="en">Apps</span></a>
+      <a class="navlink" href="#core-settings"><span class="num">05</span><span data-lang="es">Configuración</span><span data-lang="en">Settings</span></a>
+      <a class="navlink" href="#core-security"><span class="num">06</span><span data-lang="es">Seguridad y conexión</span><span data-lang="en">Security &amp; connection</span></a>
+    </nav>
+    <nav class="navgroup">
+      <div class="navgroup-title"><span data-lang="es">App · Trazabilidad y Genealogía</span><span data-lang="en">App · Traceability &amp; Genealogy</span><span class="rule"></span></div>
+      <a class="navlink" href="#app-traceability"><span class="num">07</span><span data-lang="es">Presentación</span><span data-lang="en">Overview</span></a>
+      <a class="navlink" href="#devices"><span class="num">08</span><span data-lang="es">Dispositivos y eventos</span><span data-lang="en">Devices &amp; events</span></a>
+      <a class="navlink" href="#station-builder"><span class="num">09</span><span data-lang="es">Diseñador de estaciones</span><span data-lang="en">Station builder</span></a>
+      <a class="navlink" href="#runtime-player"><span class="num">10</span><span data-lang="es">Ejecución y Player</span><span data-lang="en">Runtime &amp; Player</span></a>
+      <a class="navlink" href="#routes"><span class="num">11</span><span data-lang="es">Rutas</span><span data-lang="en">Routes</span></a>
+      <a class="navlink" href="#materials"><span class="num">12</span><span data-lang="es">Materiales</span><span data-lang="en">Materials</span></a>
+      <a class="navlink" href="#work-centers"><span class="num">13</span><span data-lang="es">Work Centers</span><span data-lang="en">Work Centers</span></a>
+      <a class="navlink" href="#production-tracking"><span class="num">14</span><span data-lang="es">Producción en Odoo</span><span data-lang="en">Production tracking</span></a>
+      <a class="navlink" href="#genealogy"><span class="num">15</span><span data-lang="es">Genealogía</span><span data-lang="en">Genealogy</span></a>
+    </nav>
+    <nav class="navgroup">
+      <div class="navgroup-title"><span data-lang="es">Más apps</span><span data-lang="en">More apps</span><span class="rule"></span></div>
+      <a class="navlink future" href="#roadmap"><span class="num">＋</span><span data-lang="es">Próximamente</span><span data-lang="en">Coming later</span></a>
+      <p class="navgroup-note" data-lang="es">Cada app nueva añadirá aquí su propio grupo, igual que Trazabilidad y Genealogía arriba.</p>
+      <p class="navgroup-note" data-lang="en">Each new app will add its own group here, the same way Traceability &amp; Genealogy does above.</p>
+    </nav>
+    <nav class="navgroup">
+      <div class="navgroup-title"><span data-lang="es">Referencia</span><span data-lang="en">Reference</span><span class="rule"></span></div>
+      <a class="navlink" href="#glossary"><span class="num">16</span><span data-lang="es">Glosario</span><span data-lang="en">Glossary</span></a>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <nav class="breadcrumb" id="breadcrumb" aria-label="breadcrumb"></nav>
+
+    <!-- 00 OVERVIEW -->
+    <section class="section" id="overview">
+      <div class="hero-inner">
+        <span class="eyebrow" data-lang="es">Documentación · v1</span>
+        <span class="eyebrow" data-lang="en">Documentation · v1</span>
+
+        <h1 data-lang="es">Qué es Manufactoo</h1>
+        <h1 data-lang="en">What is Manufactoo</h1>
+
+        <p class="lead" data-lang="es">Manufactoo es un <strong>MES (Manufacturing Execution System) de código abierto y sin código</strong>, pensado para instalarse dentro de la propia empresa — sin depender de ningún servicio en la nube. Convierte tu instancia de Odoo en la fuente de verdad de los datos maestros, y añade encima todo lo que Odoo no cubre bien en planta: pantallas de captura para el operario, trazabilidad pieza a pieza y control de secuencia.</p>
+        <p class="lead" data-lang="en">Manufactoo is an <strong>open-source, no-code Manufacturing Execution System (MES)</strong>, built to run on-premises — no cloud service required. It turns your existing Odoo instance into the source of truth for master data, and adds on top everything Odoo doesn't cover well on the shop floor: operator capture screens, unit-by-unit traceability, and sequence control.</p>
+
+        <div class="hero-badges">
+          <span class="hero-badge">LGPL-3.0</span>
+          <span class="hero-badge" data-lang="es">On-premise</span>
+          <span class="hero-badge" data-lang="en">On-premise</span>
+          <span class="hero-badge" data-lang="es">Sin código</span>
+          <span class="hero-badge" data-lang="en">No-code</span>
+          <span class="hero-badge">Odoo 18 / 19</span>
+        </div>
+      </div>
+
+      <div class="prose" style="margin-top:2.2rem;">
+        <h3 data-lang="es">Cómo está construido</h3>
+        <h3 data-lang="en">How it's built</h3>
+        <div data-lang="es">
+          <p>Un backend en Spring Boot con base de datos PostgreSQL propia, y un frontend en React. Manufactoo <strong>nunca duplica</strong> los datos maestros de Odoo (productos, listas de materiales, órdenes de fabricación, operarios, work centers…): cada pantalla los consulta en vivo. Lo único que vive en la base de datos propia de Manufactoo es lo que Odoo no modela — el diseño de las estaciones, las rutas, los registros de trazabilidad y las sesiones de trabajo.</p>
+          <p>La conexión con Odoo se detecta y adapta sola a la versión instalada (18 o 19), y para el hardware de planta que un navegador normal no puede tocar (puerto serie, MQTT, impresoras de red) existe el <strong>Manufactoo Player</strong>, una app de escritorio (Electron) que siempre carga la misma página en vivo del servidor — nunca una copia empaquetada.</p>
+        </div>
+        <div data-lang="en">
+          <p>A Spring Boot backend with its own PostgreSQL database, and a React frontend. Manufactoo <strong>never duplicates</strong> Odoo's master data (products, bills of materials, manufacturing orders, operators, work centers…): every screen queries it live. The only thing that lives in Manufactoo's own database is what Odoo doesn't model — station designs, routes, traceability records and work sessions.</p>
+          <p>The Odoo connection auto-detects and adapts to whichever version is installed (18 or 19), and for shop-floor hardware a plain browser can't reach (serial ports, MQTT, network printers) there's the <strong>Manufactoo Player</strong>, a desktop app (Electron) that always loads the same live page from the server — never a bundled copy.</p>
+        </div>
+
+        <h3 data-lang="es">El modelo de "Apps"</h3>
+        <h3 data-lang="en">The "Apps" model</h3>
+        <div data-lang="es">
+          <p>La funcionalidad de Manufactoo se organiza en <strong>aplicaciones instalables</strong>, cada una con su propio grupo en el menú lateral. Hoy existe una sola app, <strong>Trazabilidad y Genealogía</strong>, que cubre todo lo relacionado con estaciones, rutas, materiales, Work Centers y genealogía — descrito en detalle en las secciones 07 a 15 de este documento. El marco de aplicaciones está pensado desde el principio para que se puedan añadir más apps independientes sin tocar las que ya existen (ver <a href="#roadmap">Próximas apps</a>).</p>
+        </div>
+        <div data-lang="en">
+          <p>Manufactoo's functionality is organized into <strong>installable apps</strong>, each with its own group in the side menu. Today there's a single app, <strong>Traceability &amp; Genealogy</strong>, covering everything related to stations, routes, materials, Work Centers and genealogy — described in detail in sections 07 through 15 of this document. The apps framework was built from the start so more independent apps can be added without touching the ones already installed (see <a href="#roadmap">More apps</a>).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 GETTING STARTED -->
+    <section class="section" id="getting-started">
+      <span class="eyebrow" data-lang="es">01 · Instalación</span>
+      <span class="eyebrow" data-lang="en">01 · Setup</span>
+      <h2 data-lang="es">Primeros pasos</h2>
+      <h2 data-lang="en">Getting started</h2>
+      <p class="lead" data-lang="es">Antes de que exista ningún usuario, Manufactoo guía la primera instalación con un asistente de 5 pasos. Solo se ejecuta una vez.</p>
+      <p class="lead" data-lang="en">Before any user exists, Manufactoo walks through the first installation with a 5-step wizard. It only runs once.</p>
+
+      <ol class="steps">
+        <li data-lang="es"><strong>Idioma.</strong> <span>El idioma elegido aquí se usa en todo el asistente y, después, en el panel — cada usuario puede tener el suyo propio una vez dentro.</span></li>
+        <li data-lang="en"><strong>Language.</strong> <span>The chosen language drives the whole wizard and, later, the dashboard — every user can pick their own once inside.</span></li>
+
+        <li data-lang="es"><strong>Conexión con Odoo.</strong> <span>Host, base de datos, usuario y clave/API key, con un botón de prueba de conexión. La versión de Odoo (18 o 19) <strong>se detecta sola</strong> — no hay ningún selector manual que pueda quedar desincronizado.</span></li>
+        <li data-lang="en"><strong>Odoo connection.</strong> <span>Host, database, user and API key/password, with a connection-test button. The Odoo version (18 or 19) is <strong>auto-detected</strong> — no manual picker that could ever fall out of sync.</span></li>
+
+        <li data-lang="es"><strong>Datos de la empresa.</strong> <span>Nombre y datos básicos usados para identificar la instalación.</span></li>
+        <li data-lang="en"><strong>Company data.</strong> <span>Name and basic details used to identify this installation.</span></li>
+
+        <li data-lang="es"><strong>Usuario administrador.</strong> <span>El primer usuario, con el que se accederá al panel a partir de ahora.</span></li>
+        <li data-lang="en"><strong>Admin user.</strong> <span>The first user — the one used to log in from now on.</span></li>
+
+        <li data-lang="es"><strong>Resumen.</strong> <span>Revisión final antes de confirmar y crear la instalación.</span></li>
+        <li data-lang="en"><strong>Summary.</strong> <span>Final review before confirming and creating the installation.</span></li>
+      </ol>
+
+      <div class="note">
+        <strong data-lang="es">Navegación siempre visible</strong>
+        <strong data-lang="en">Always-visible navigation</strong>
+        <span data-lang="es">Una vez dentro, el menú lateral tiene dos zonas: un grupo <strong>General</strong> que no depende de ninguna app (Panel principal, Datos maestros, Aplicaciones, Configuración, Perfil), y un grupo por cada app instalada — hoy, Trazabilidad y Genealogía.</span>
+        <span data-lang="en">Once inside, the side menu has two zones: a <strong>General</strong> group that doesn't depend on any app (Dashboard, Master Data, Apps, Settings, Profile), and one group per installed app — today, Traceability &amp; Genealogy.</span>
+      </div>
+    </section>
+
+    <!-- 02 DASHBOARD -->
+    <section class="section" id="core-dashboard">
+      <span class="eyebrow" data-lang="es">02 · General</span>
+      <span class="eyebrow" data-lang="en">02 · General</span>
+      <h2 data-lang="es">Panel principal</h2>
+      <h2 data-lang="en">Dashboard</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>La pantalla de inicio muestra, hoy, un único gráfico: <strong>Órdenes de fabricación abiertas</strong> — todas las que están confirmadas, en curso o por cerrar (ni en borrador, ni terminadas, ni canceladas), una junto a otra en un solo gráfico de barras con eje 0–100% compartido, ordenadas de menor a mayor avance para que lo más urgente quede arriba.</p>
+          <p>El porcentaje de cada orden es <code>cantidad producida ÷ cantidad planeada</code>, leído en vivo de Odoo — refleja el progreso real pieza a pieza según van pasando por las estaciones (ver <a href="#production-tracking">Producción en Odoo</a>), no solo cuando la orden se cierra del todo. Cada fila tiene un tooltip con el detalle exacto (accesible también por teclado), y un enlace "ver como tabla" ofrece los mismos datos en una tabla accesible normal.</p>
+        </div>
+        <div data-lang="en">
+          <p>The home screen shows, today, a single chart: <strong>Open manufacturing orders</strong> — every order that's confirmed, in progress or ready to close (never draft, done or cancelled), all in one shared 0–100% bar chart, sorted least-complete first so what needs attention shows up on top.</p>
+          <p>Each order's percentage is <code>quantity produced ÷ planned quantity</code>, read live from Odoo — it reflects real, piece-by-piece progress as units pass through stations (see <a href="#production-tracking">Production tracking</a>), not only once an order fully closes. Each row has a keyboard-accessible tooltip with the exact figures, and a "view as table" link offers the same data as a plain accessible table.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 MASTER DATA -->
+    <section class="section" id="core-master-data">
+      <span class="eyebrow" data-lang="es">03 · General</span>
+      <span class="eyebrow" data-lang="en">03 · General</span>
+      <h2 data-lang="es">Datos maestros</h2>
+      <h2 data-lang="en">Master data</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Un espejo de solo lectura de Odoo, organizado en pestañas: <strong>Productos</strong>, <strong>Listas de materiales</strong>, <strong>Órdenes de fabricación</strong>, <strong>Operarios</strong>, <strong>Series/lotes</strong>, <strong>Work Centers</strong> y <strong>Órdenes de trabajo</strong>.</p>
+        </div>
+        <div data-lang="en">
+          <p>A read-only mirror of Odoo, organized into tabs: <strong>Products</strong>, <strong>Bills of materials</strong>, <strong>Manufacturing orders</strong>, <strong>Operators</strong>, <strong>Serials/lots</strong>, <strong>Work Centers</strong> and <strong>Work orders</strong>.</p>
+        </div>
+      </div>
+      <div class="note">
+        <strong data-lang="es">Nada se copia</strong>
+        <strong data-lang="en">Nothing is copied</strong>
+        <span data-lang="es">Manufactoo nunca guarda una copia de estos datos: cada vez que abres una de estas pantallas, se consulta a Odoo directamente. Este mismo principio es el que alimenta los desplegables y tablas del diseñador de estaciones (sección 09).</span>
+        <span data-lang="en">Manufactoo never stores a copy of this data: every time you open one of these screens, Odoo is queried directly. This same principle feeds the dropdowns and tables in the station builder (section 09).</span>
+      </div>
+    </section>
+
+    <!-- 04 APPS -->
+    <section class="section" id="core-apps">
+      <span class="eyebrow" data-lang="es">04 · General</span>
+      <span class="eyebrow" data-lang="en">04 · General</span>
+      <h2 data-lang="es">Aplicaciones</h2>
+      <h2 data-lang="en">Apps</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Pantalla de instalación/desinstalación de apps. Instalar una app añade su grupo correspondiente al menú lateral y habilita sus capacidades; desinstalarla lo retira. Hoy solo hay una disponible: <strong>Trazabilidad y Genealogía</strong> (ver secciones 07–15). El diseño de esta pantalla ya contempla que aparezcan más tarjetas de apps aquí según se publiquen (ver <a href="#roadmap">Próximas apps</a>).</p>
+        </div>
+        <div data-lang="en">
+          <p>The install/uninstall screen for apps. Installing an app adds its matching group to the side menu and turns on its capabilities; uninstalling removes it. Today only one is available: <strong>Traceability &amp; Genealogy</strong> (see sections 07–15). The screen is already built to show more app cards here as they ship (see <a href="#roadmap">More apps</a>).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 SETTINGS -->
+    <section class="section" id="core-settings">
+      <span class="eyebrow" data-lang="es">05 · General</span>
+      <span class="eyebrow" data-lang="en">05 · General</span>
+      <h2 data-lang="es">Configuración</h2>
+      <h2 data-lang="en">Settings</h2>
+      <div class="cards">
+        <div class="card">
+          <h4 data-lang="es">General</h4>
+          <h4 data-lang="en">General</h4>
+          <p data-lang="es">Datos de la empresa introducidos en el asistente, editables después.</p>
+          <p data-lang="en">The company data entered in the wizard, editable afterwards.</p>
+        </div>
+        <div class="card">
+          <h4 data-lang="es">Odoo</h4>
+          <h4 data-lang="en">Odoo</h4>
+          <p data-lang="es">Los mismos parámetros de conexión del paso 2 del asistente — por si cambia el host, el usuario o la clave.</p>
+          <p data-lang="en">The same connection parameters from wizard step 2 — for when the host, user or password changes.</p>
+        </div>
+        <div class="card">
+          <h4 data-lang="es">Apariencia</h4>
+          <h4 data-lang="en">Appearance</h4>
+          <p data-lang="es">Tema claro/oscuro, con logotipo propio para modo oscuro allá donde el logotipo aparece.</p>
+          <p data-lang="en">Light/dark theme, with a dedicated logo for dark mode everywhere the logo appears.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 SECURITY -->
+    <section class="section" id="core-security">
+      <span class="eyebrow" data-lang="es">06 · General</span>
+      <span class="eyebrow" data-lang="en">06 · General</span>
+      <h2 data-lang="es">Seguridad y conexión</h2>
+      <h2 data-lang="en">Security &amp; connection</h2>
+      <div class="prose">
+        <h3 data-lang="es">Credenciales de Odoo</h3>
+        <h3 data-lang="en">Odoo credentials</h3>
+        <div data-lang="es"><p>La clave/API key de Odoo se guarda <strong>cifrada en reposo</strong> (AES-256-GCM) y solo se descifra en memoria, en el servidor, en el instante de hacer una llamada real a Odoo — nunca se envía al navegador.</p></div>
+        <div data-lang="en"><p>The Odoo password/API key is stored <strong>encrypted at rest</strong> (AES-256-GCM) and only decrypted in memory, on the server, at the moment of an actual Odoo call — it never reaches the browser.</p></div>
+
+        <h3 data-lang="es">Solo API, nunca la base de datos de Odoo</h3>
+        <h3 data-lang="en">API only, never Odoo's database</h3>
+        <div data-lang="es"><p>Manufactoo nunca abre una conexión directa a la base de datos de Odoo: todo pasa por su API oficial JSON-RPC (<code>/jsonrpc</code>), el mismo canal que usaría cualquier integración externa. Eso respeta la lógica de negocio propia de Odoo (validaciones, permisos, campos calculados) en vez de saltársela con SQL directo, y es lo que permite funcionar igual contra un Odoo en la nube, donde ni siquiera hay acceso a la base de datos.</p></div>
+        <div data-lang="en"><p>Manufactoo never opens a direct connection to Odoo's database: everything goes through its official JSON-RPC API (<code>/jsonrpc</code>), the same channel any external integration would use. That respects Odoo's own business logic (validations, permissions, computed fields) instead of bypassing it with direct SQL, and is exactly what lets it work the same way against a cloud-hosted Odoo, where direct database access isn't even available.</p></div>
+
+        <h3 data-lang="es">Por qué el asistente pide el nombre de la base de datos</h3>
+        <h3 data-lang="en">Why the wizard asks for the database name</h3>
+        <div data-lang="es"><p>Odoo es multi-inquilino: un mismo servidor puede alojar varias bases de datos completamente independientes (empresas o entornos distintos), cada una con sus propios usuarios. Un usuario y contraseña solo son únicos <em>dentro</em> de una base concreta, así que el nombre de la base es un parámetro obligatorio en cada llamada a la API de Odoo — no solo al conectar, también en cada lectura o escritura posterior.</p></div>
+        <div data-lang="en"><p>Odoo is multi-tenant: a single server can host several completely independent databases (different companies or environments), each with its own users. A username and password are only unique <em>within</em> one database, so the database name is a required parameter on every Odoo API call — not just at login, but on every read or write that follows.</p></div>
+
+        <h3 data-lang="es">Sesiones de usuario</h3>
+        <h3 data-lang="en">User sessions</h3>
+        <div data-lang="es"><p>Cada sesión de persona se autentica con un token JWT. Hoy existe un único rol, <span class="chip">ADMIN</span> — pensado para ampliarse a más roles más adelante.</p></div>
+        <div data-lang="en"><p>Every human session authenticates with a JWT token. Today there is a single role, <span class="chip">ADMIN</span> — designed to grow into more roles later.</p></div>
+
+        <h3 data-lang="es">Los Player nunca usan una contraseña de persona</h3>
+        <h3 data-lang="en">Players never use a human password</h3>
+        <div data-lang="es"><p>Un Manufactoo Player (sección 10) se autentica como <strong>dispositivo</strong>, con un token propio (<code>X-Player-Token</code>) obtenido por emparejamiento — ninguna contraseña de usuario toca nunca un PC de planta.</p></div>
+        <div data-lang="en"><p>A Manufactoo Player (section 10) authenticates as a <strong>device</strong>, with its own token (<code>X-Player-Token</code>) obtained through pairing — no user password ever touches a shop-floor PC.</p></div>
+
+        <h3 data-lang="es">Odoo 18 y 19, sin selector manual</h3>
+        <h3 data-lang="en">Odoo 18 and 19, no manual picker</h3>
+        <div data-lang="es"><p>Una capa de adaptador ligera detecta la versión de Odoo en el momento de conectar y ajusta las llamadas donde hace falta — nunca hay que decírselo a mano, ni puede quedar desincronizado.</p></div>
+        <div data-lang="en"><p>A thin adapter layer detects the Odoo version at connection time and adjusts calls where needed — it never has to be told by hand, and it can never fall out of sync.</p></div>
+      </div>
+    </section>
+
+    <!-- 07 APP TRACEABILITY OVERVIEW -->
+    <section class="section" id="app-traceability">
+      <span class="eyebrow" data-lang="es">07 · App instalada</span>
+      <span class="eyebrow" data-lang="en">07 · Installed app</span>
+      <h2 data-lang="es">Trazabilidad y Genealogía</h2>
+      <h2 data-lang="en">Traceability &amp; Genealogy</h2>
+      <p class="lead" data-lang="es">La primera app de Manufactoo. Captura lo que pasa en cada punto de la planta, obliga a que cada unidad siga la secuencia correcta, y opcionalmente devuelve el progreso real a Odoo — todo sin duplicar los datos de Odoo.</p>
+      <p class="lead" data-lang="en">Manufactoo's first app. It captures what happens at every point on the shop floor, enforces that each unit follows the correct sequence, and optionally feeds real progress back into Odoo — all without duplicating Odoo's data.</p>
+      <div class="prose">
+        <div data-lang="es"><p>Las ocho secciones siguientes (08 a 15) describen, de menor a mayor nivel, todo lo que trae esta app: primero sus piezas de entrada (dispositivos, el diseñador de estaciones), después cómo se ejecutan en planta, y por último las tres capacidades que se construyen encima — Rutas, Materiales, Work Centers y el descuento de producción real en Odoo — hasta llegar a la Genealogía, que las reúne todas.</p></div>
+        <div data-lang="en"><p>The eight sections that follow (08 to 15) describe, from the ground up, everything this app brings: first its building blocks (devices, the station builder), then how they run on the floor, and finally the three capabilities built on top — Routes, Materials, Work Centers and real production write-back into Odoo — ending with Genealogy, which ties them all together.</p></div>
+      </div>
+    </section>
+
+    <!-- 08 DEVICES -->
+    <section class="section" id="devices">
+      <span class="eyebrow" data-lang="es">08 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">08 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Dispositivos y eventos</h2>
+      <h2 data-lang="en">Devices &amp; events</h2>
+      <div class="prose">
+        <div data-lang="es"><p>El hardware real de planta se da de alta una vez y queda disponible como origen de datos para cualquier campo de cualquier estación.</p></div>
+        <div data-lang="en"><p>Real shop-floor hardware is registered once and becomes available as a data source for any field on any station.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-lang="es">Categoría</th><th data-lang="en">Category</th>
+            <th data-lang="es">Transportes</th><th data-lang="en">Transports</th>
+            <th data-lang="es">Ejemplo</th><th data-lang="en">Example</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">BARCODE_SCANNER</td>
+              <td class="mono">SERIAL · USB_HID</td>
+              <td data-lang="es">Lector de códigos — en emulación de teclado funciona en cualquier navegador sin Player</td>
+              <td data-lang="en">Barcode reader — in keyboard-wedge mode it works in any browser, no Player needed</td>
+            </tr>
+            <tr>
+              <td class="mono">RS232</td>
+              <td class="mono">SERIAL</td>
+              <td data-lang="es">Báscula, PLC u otro equipo serie genérico</td>
+              <td data-lang="en">A scale, a PLC, or any other generic serial device</td>
+            </tr>
+            <tr>
+              <td class="mono">PRINTER</td>
+              <td class="mono">IPP_CUPS · ZPL_RAW · ESC_POS</td>
+              <td data-lang="es">Impresora de red o de etiquetas</td>
+              <td data-lang="en">A network or label printer</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <div data-lang="es"><p>Cada dispositivo serie guarda su propia configuración de puerto (puerto, baudios, bits, paridad, control de flujo, fin de línea, codificación). Los <strong>Eventos</strong> son topics MQTT (broker embebido, sin nube) con una dirección: <strong>suscripción</strong> (un topic entrante rellena un campo solo) o <strong>publicación</strong> (una estación puede enviar un valor hacia fuera, p. ej. a un PLC o una baliza).</p></div>
+        <div data-lang="en"><p>Every serial device stores its own port settings (port, baud rate, bits, parity, flow control, line ending, encoding). <strong>Events</strong> are MQTT topics (embedded broker, no cloud) with a direction: <strong>subscribe</strong> (an incoming topic fills a field automatically) or <strong>publish</strong> (a station can push a value out, e.g. to a PLC or a beacon).</p></div>
+      </div>
+    </section>
+
+    <!-- 09 STATION BUILDER -->
+    <section class="section" id="station-builder">
+      <span class="eyebrow" data-lang="es">09 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">09 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Diseñador de estaciones</h2>
+      <h2 data-lang="en">Station builder</h2>
+      <div class="prose">
+        <div data-lang="es"><p>El corazón de la app: un editor de arrastrar y soltar sobre una rejilla de 12 columnas y filas de alto fijo, sin escribir código. Una estación es una secuencia de una o varias pantallas, cada una con los widgets que hagan falta. La misma geometría se usa en el diseño y en producción — <strong>WYSIWYG</strong>: lo que se diseña es exactamente lo que ve el operario, escalado al ancho de su pantalla. Esta página documenta <strong>todo</strong> lo que se puede configurar, campo a campo.</p></div>
+        <div data-lang="en"><p>The heart of the app: a drag-and-drop editor over a 12-column grid with fixed-height rows, no code required. A station is a sequence of one or more screens, each holding whatever widgets it needs. The exact same geometry is used in design and in production — <strong>WYSIWYG</strong>: what you design is exactly what the operator sees, scaled to their screen's width. This page documents <strong>everything</strong> that can be configured, field by field.</p></div>
+
+        <h3 data-lang="es">La estación como objeto</h3>
+        <h3 data-lang="en">The station itself</h3>
+      </div>
+      <dl class="kv">
+        <dt data-lang="es">Nombre y descripción</dt><dt data-lang="en">Name and description</dt>
+        <dd data-lang="es">Identifican la estación en el listado, en Datos maestros, y en el encabezado que ve el operario en el runtime.</dd>
+        <dd data-lang="en">Identify the station in the list, in Master data, and in the header the operator sees at runtime.</dd>
+
+        <dt data-lang="es">Activa / inactiva</dt><dt data-lang="en">Enabled / disabled</dt>
+        <dd data-lang="es">Una estación inactiva no se puede abrir en modo operario.</dd>
+        <dd data-lang="en">A disabled station cannot be opened in operator mode.</dd>
+
+        <dt data-lang="es">Work Center de Odoo</dt><dt data-lang="en">Odoo Work Center</dt>
+        <dd data-lang="es">Asociación opcional a un <code>mrp.workcenter</code> real. La usan el widget de Órdenes de trabajo (filtra por este Work Center) y el atajo "Crear desde Work Center" del listado de estaciones, que prerellena nombre y Work Center al crear una nueva.</dd>
+        <dd data-lang="en">Optional link to a real <code>mrp.workcenter</code>. Used by the Work Orders widget (filters by this Work Center) and by the "Create from Work Center" shortcut on the stations list, which pre-fills name and Work Center when creating a new one.</dd>
+
+        <dt data-lang="es">Pantallas (secuencia)</dt><dt data-lang="en">Screens (sequence)</dt>
+        <dd data-lang="es">Una estación puede tener varias pantallas; el operario avanza entre ellas con botones (o al confirmar un campo con "finaliza el flujo", ver más abajo). Cada pantalla tiene su propio título, opcionalmente mostrado con un widget Etiqueta.</dd>
+        <dd data-lang="en">A station can have several screens; the operator moves between them with buttons (or by confirming a field marked "finishes the flow", see below). Each screen has its own title, optionally shown with a Label widget.</dd>
+
+        <dt data-lang="es">Posiciones físicas</dt><dt data-lang="en">Physical positions</dt>
+        <dd data-lang="es">Nombres libres (p. ej. <code>R1</code>, <code>Feeder-A</code>) que representan huecos físicos de la estación — se usan al cargar un material (sección 12): cargar en una posición que ya tenía algo sustituye lo anterior; sin posición, el material simplemente se añade a la lista.</dd>
+        <dd data-lang="en">Free-form names (e.g. <code>R1</code>, <code>Feeder-A</code>) representing physical slots on the station — used when loading a material (section 12): loading into a position that already had something replaces it; without a position, the material is simply added to the list.</dd>
+      </dl>
+
+      <div class="prose">
+        <h3 data-lang="es">El lienzo</h3>
+        <h3 data-lang="en">The canvas</h3>
+        <div data-lang="es"><p>Rejilla de 12 columnas fraccionales (<code>1fr</code>) y filas de 56px de alto fijo — igual en el editor que en producción, así el diseño escala en horizontal a cualquier pantalla sin perder proporción. Los widgets se arrastran desde una paleta lateral o se añaden con un clic; se mueven y redimensionan directamente sobre la rejilla. Al seleccionar un widget aparece una barra de estilo flotante (tamaño de texto, color) y, en los widgets de texto/etiqueta, edición del contenido en línea, sin diálogos aparte. Un widget <span class="chip">PANEL</span> permite agrupar visualmente otros widgets encima suyo (siempre se pinta detrás) — es puramente decorativo, no crea ninguna relación de datos entre lo que contiene.</p></div>
+        <div data-lang="en"><p>A 12-column fractional (<code>1fr</code>) grid with fixed 56px-tall rows — identical in the editor and in production, so the design scales horizontally to any screen without losing proportion. Widgets are dragged from a side palette or added with a click; they're moved and resized directly on the grid. Selecting a widget shows a floating style bar (text size, color) and, on text/label widgets, inline content editing, no separate dialogs. A <span class="chip">PANEL</span> widget visually groups other widgets placed on top of it (always painted behind) — purely decorative, it creates no data relationship between what it contains.</p></div>
+
+        <h3 data-lang="es">Catálogo de widgets</h3>
+        <h3 data-lang="en">Widget catalog</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Widget</th>
+            <th data-lang="es">Qué hace</th><th data-lang="en">What it does</th>
+            <th data-lang="es">Configuración</th><th data-lang="en">Configuration</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="mono">DROPDOWN</td>
+              <td data-lang="es">Desplegable cuyas opciones salen de una lista fija o en vivo de Odoo. Captura dato: sí.</td>
+              <td data-lang="en">A dropdown whose options come from a fixed list or live from Odoo. Captures data: yes.</td>
+              <td data-lang="es"><code>placeholder</code>, <code>finalizesFlow</code>, <code>sticky</code>, columna(s) de etiqueta a mostrar, origen de datos.</td>
+              <td data-lang="en"><code>placeholder</code>, <code>finalizesFlow</code>, <code>sticky</code>, which label column(s) to show, data source.</td></tr>
+            <tr><td class="mono">TEXT_INPUT</td>
+              <td data-lang="es">Texto libre escrito por el operario. Captura dato: sí.</td>
+              <td data-lang="en">Free text typed by the operator. Captures data: yes.</td>
+              <td data-lang="es"><code>placeholder</code>, <code>finalizesFlow</code>, <code>sticky</code>; origen de datos <strong>opcional</strong> — si se elige uno, valida en vivo contra Odoo (ver más abajo).</td>
+              <td data-lang="en"><code>placeholder</code>, <code>finalizesFlow</code>, <code>sticky</code>; data source is <strong>optional</strong> — if set, validates live against Odoo (see below).</td></tr>
+            <tr><td class="mono">NUMBER_INPUT</td>
+              <td data-lang="es">Entrada numérica. Captura dato: sí.</td>
+              <td data-lang="en">A numeric entry. Captures data: yes.</td>
+              <td data-lang="es"><code>placeholder</code>, <code>min</code>, <code>max</code>, <code>sticky</code>. Sin origen de datos.</td>
+              <td data-lang="en"><code>placeholder</code>, <code>min</code>, <code>max</code>, <code>sticky</code>. No data source.</td></tr>
+            <tr><td class="mono">LABEL</td>
+              <td data-lang="es">Texto de solo lectura. No captura dato.</td>
+              <td data-lang="en">Read-only text. Does not capture data.</td>
+              <td data-lang="es">Texto fijo, <strong>o</strong> vinculado a otro widget (<code>boundTo</code>/<code>boundField</code>, ver más abajo); <code>showDateTime</code> (+ formato), <code>showStationName</code>, <code>showScreenTitle</code> — contenidos especiales siempre en vivo, en vez de texto fijo copiado a mano.</td>
+              <td data-lang="en">Fixed text, <strong>or</strong> bound to another widget (<code>boundTo</code>/<code>boundField</code>, see below); <code>showDateTime</code> (+ format), <code>showStationName</code>, <code>showScreenTitle</code> — special always-live contents instead of hand-copied fixed text.</td></tr>
+            <tr><td class="mono">IMAGE</td>
+              <td data-lang="es">Imagen estática subida (p. ej. instrucciones de montaje) <strong>o</strong> imagen vinculada a otro widget. Solo muestra.</td>
+              <td data-lang="en">An uploaded static image (e.g. assembly instructions) <strong>or</strong> an image bound to another widget. Display only.</td>
+              <td data-lang="es"><code>fit</code>: <span class="chip">CONTAIN</span> o <span class="chip">COVER</span>. En modo vinculado (<code>imageSource</code> = <span class="chip">BOUND</span>) elige el widget origen y se usa automáticamente su campo <code>image_128</code>; si el origen no tiene imagen, no se permite la vinculación.</td>
+              <td data-lang="en"><code>fit</code>: <span class="chip">CONTAIN</span> or <span class="chip">COVER</span>. In bound mode (<code>imageSource</code> = <span class="chip">BOUND</span>) pick the source widget and its <code>image_128</code> field is used automatically; if the source has no image, binding is not allowed.</td></tr>
+            <tr><td class="mono">TABLE</td>
+              <td data-lang="es">Tabla enlazada a un origen de datos. Captura dato solo si es seleccionable.</td>
+              <td data-lang="en">A table bound to a data source. Captures data only if selectable.</td>
+              <td data-lang="es"><code>selectionMode</code> (<span class="chip">NONE</span>/<span class="chip">SINGLE</span>/<span class="chip">MULTI</span>), <code>valueColumn</code> (por defecto <code>id</code>), <code>maxRows</code>, <code>sticky</code> (mantiene la fila elegida entre unidades — clave si la tabla decide la orden de fabricación), filtros contextuales (ver más abajo).</td>
+              <td data-lang="en"><code>selectionMode</code> (<span class="chip">NONE</span>/<span class="chip">SINGLE</span>/<span class="chip">MULTI</span>), <code>valueColumn</code> (default <code>id</code>), <code>maxRows</code>, <code>sticky</code> (keeps the chosen row across units — key when the table decides the manufacturing order), contextual filters (see below).</td></tr>
+            <tr><td class="mono">BUTTON</td>
+              <td data-lang="es">Navega la secuencia, finaliza el registro, o abre Materiales. No captura dato propio.</td>
+              <td data-lang="en">Navigates the sequence, finishes the record, or opens Materials. Doesn't capture its own data.</td>
+              <td data-lang="es"><code>text</code>, <code>action</code> (<span class="chip">NEXT</span>/<span class="chip">PREV</span>/<span class="chip">GOTO</span>/<span class="chip">SUBMIT</span>/<span class="chip">MATERIALS</span>), <code>targetScreen</code> (solo GOTO), <code>result</code> (solo SUBMIT: <span class="chip">NONE</span>/<span class="chip">OK</span>/<span class="chip">NG</span>) — dos botones SUBMIT (uno OK, otro NG) sustituyen al "Finalizar" único cuando la estación necesita marcar bueno/malo.</td>
+              <td data-lang="en"><code>text</code>, <code>action</code> (<span class="chip">NEXT</span>/<span class="chip">PREV</span>/<span class="chip">GOTO</span>/<span class="chip">SUBMIT</span>/<span class="chip">MATERIALS</span>), <code>targetScreen</code> (GOTO only), <code>result</code> (SUBMIT only: <span class="chip">NONE</span>/<span class="chip">OK</span>/<span class="chip">NG</span>) — two SUBMIT buttons (one OK, one NG) replace the single "Finish" when the station needs to mark good/bad.</td></tr>
+            <tr><td class="mono">STATION_MATERIALS</td>
+              <td data-lang="es">Lotes/series cargados ahora mismo en la estación (ver Materiales). Puramente informativo.</td>
+              <td data-lang="en">Lots/serials currently loaded at the station (see Materials). Purely informational.</td>
+              <td data-lang="es">Sin configuración — no requiere binding ni origen de datos propio.</td>
+              <td data-lang="en">No configuration — needs no binding or data source of its own.</td></tr>
+            <tr><td class="mono">PANEL</td>
+              <td data-lang="es">Puramente decorativo — agrupa visualmente otros widgets.</td>
+              <td data-lang="en">Purely decorative — visually groups other widgets.</td>
+              <td data-lang="es">Sin configuración propia (color de fondo vía el mismo estilo que cualquier widget).</td>
+              <td data-lang="en">No configuration of its own (background color via the same style controls as any widget).</td></tr>
+            <tr><td class="mono">STATION_HISTORY</td>
+              <td data-lang="es">Últimos registros de esta misma estación.</td>
+              <td data-lang="en">This station's most recent trace records.</td>
+              <td data-lang="es"><code>maxRows</code> (por defecto 10).</td>
+              <td data-lang="en"><code>maxRows</code> (default 10).</td></tr>
+            <tr><td class="mono">WORKORDER_ACTIONS</td>
+              <td data-lang="es">Start / Pausar / Bloquear / Finalizar sobre la orden de trabajo elegida (ver Work Centers).</td>
+              <td data-lang="en">Start / Pause / Block / Finish over the selected work order (see Work Centers).</td>
+              <td data-lang="es"><code>boundTo</code> obligatorio: qué Tabla de Órdenes de trabajo (selección única) usar. Sin origen de datos propio — su dato es el work order ya elegido en esa tabla.</td>
+              <td data-lang="en"><code>boundTo</code> required: which single-select Work Orders Table to use. No data source of its own — its data is the work order already chosen in that table.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3 data-lang="es">Orígenes de datos</h3>
+        <h3 data-lang="en">Data sources</h3>
+        <div data-lang="es"><p>Una lista estática que se escribe a mano al diseñar (<code>STATIC_LIST</code>), o en vivo desde Odoo — Manufactoo nunca copia estos datos, cada apertura de la estación los consulta de nuevo:</p></div>
+        <div data-lang="en"><p>A static list typed by hand while designing (<code>STATIC_LIST</code>), or live from Odoo — Manufactoo never copies this data, every time the station opens it's queried again:</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th data-lang="es">Origen</th><th data-lang="en">Source</th><th>Odoo</th><th data-lang="es">Qué es</th><th data-lang="en">What it is</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ODOO_PRODUCTS</td><td class="mono">product.product</td>
+              <td data-lang="es">Productos.</td><td data-lang="en">Products.</td></tr>
+            <tr><td class="mono">ODOO_MANUFACTURING_ORDERS</td><td class="mono">mrp.production</td>
+              <td data-lang="es">Órdenes de fabricación (MO).</td><td data-lang="en">Manufacturing orders (MO).</td></tr>
+            <tr><td class="mono">ODOO_OPERATORS</td><td class="mono">hr.employee</td>
+              <td data-lang="es">Operarios/empleados.</td><td data-lang="en">Operators/employees.</td></tr>
+            <tr><td class="mono">ODOO_BOMS</td><td class="mono">mrp.bom</td>
+              <td data-lang="es">Listas de materiales.</td><td data-lang="en">Bills of materials.</td></tr>
+            <tr><td class="mono">ODOO_SERIALS</td><td class="mono">stock.lot</td>
+              <td data-lang="es">Números de serie/lote — la unidad física concreta.</td><td data-lang="en">Serial/lot numbers — the specific physical unit.</td></tr>
+            <tr><td class="mono">ODOO_WORKCENTERS</td><td class="mono">mrp.workcenter</td>
+              <td data-lang="es">Work Centers (máquina/línea/recurso).</td><td data-lang="en">Work Centers (machine/line/resource).</td></tr>
+            <tr><td class="mono">ODOO_WORKORDERS</td><td class="mono">mrp.workorder</td>
+              <td data-lang="es">Órdenes de trabajo — una operación concreta de una MO.</td><td data-lang="en">Work orders — one specific operation of an MO.</td></tr>
+            <tr><td class="mono">ODOO_LOSS_REASONS</td><td class="mono">mrp.workcenter.productivity.loss</td>
+              <td data-lang="es">Motivos de bloqueo (solo los marcados "manual" en Odoo).</td><td data-lang="en">Loss/block reasons (only the ones marked "manual" in Odoo).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3 data-lang="es">Filtros contextuales de las tablas Odoo</h3>
+        <h3 data-lang="en">Contextual filters on Odoo tables</h3>
+        <div data-lang="es">
+          <p>Tres casillas/selectores, disponibles según el origen de datos, que estrechan qué filas de Odoo se ofrecen — todos "fallan abiertos": si falta el dato que necesitan para filtrar, muestran todo sin filtrar en vez de dejar al operario sin opciones:</p>
+          <ul>
+            <li><strong>"Limitar por producto de la ruta"</strong> (<code>filterByStationRoute</code>, solo <span class="chip">ODOO_MANUFACTURING_ORDERS</span>): si esta estación es paso de una Ruta con producto fijado (sección 11), solo enseña las MO de ese producto.</li>
+            <li><strong>Work Center de la estación</strong> (automático, sin casilla, solo <span class="chip">ODOO_WORKORDERS</span>): si la estación tiene un Work Center de Odoo asociado, las órdenes de trabajo se limitan a ese Work Center.</li>
+            <li><strong>"Estrechar a una operación"</strong> (<code>operationId</code>, solo <span class="chip">ODOO_WORKORDERS</span> en una Tabla): dentro del Work Center, reduce aún más a una operación concreta de la BOM (útil si la misma estación repite un mismo Work Center para dos operaciones distintas).</li>
+          </ul>
+        </div>
+        <div data-lang="en">
+          <p>Three checkboxes/selectors, available depending on the data source, that narrow which Odoo rows are offered — all of them "fail open": if the data they need to filter by is missing, they show everything unfiltered instead of leaving the operator with no options:</p>
+          <ul>
+            <li><strong>"Limit by route's product"</strong> (<code>filterByStationRoute</code>, <span class="chip">ODOO_MANUFACTURING_ORDERS</span> only): if this station is a step of a Route with a fixed product (section 11), only shows MOs for that product.</li>
+            <li><strong>Station's Work Center</strong> (automatic, no checkbox, <span class="chip">ODOO_WORKORDERS</span> only): if the station has an Odoo Work Center linked, work orders are limited to that Work Center.</li>
+            <li><strong>"Narrow to an operation"</strong> (<code>operationId</code>, <span class="chip">ODOO_WORKORDERS</span> on a Table only): within the Work Center, narrows further to one specific BOM operation (useful if the same station reuses a Work Center for two different operations).</li>
+          </ul>
+        </div>
+
+        <h3 data-lang="es">Dos roles especiales de campo</h3>
+        <h3 data-lang="en">Two special field roles</h3>
+        <div data-lang="es">
+          <p>Cualquier widget que capture datos con un origen Odoo adecuado (Desplegable, Tabla de selección única, o Texto validado) puede marcarse con una casilla como uno de estos dos roles fijos — son mutuamente excluyentes en el mismo widget:</p>
+          <ul>
+            <li><strong>"Es el identificador"</strong> — dice qué campo identifica la unidad física. Lo usan las Rutas (sección 11) para exigir la secuencia y la Genealogía (sección 15) para poder buscar una pieza. Sin él, esa estación no puede formar parte de ninguna ruta ni aparecer en genealogía por identificador.</li>
+            <li><strong>"Es la orden de fabricación"</strong> — solo aparece en campos con origen <span class="chip">ODOO_MANUFACTURING_ORDERS</span>. Dice qué campo decide sobre qué orden de Odoo cuenta este envío. Lo usa el descuento de producción real (sección 14) — y ese descuento exige <em>además</em> un identificador en el mismo envío.</li>
+          </ul>
+        </div>
+        <div data-lang="en">
+          <p>Any data-capturing widget with a suitable Odoo source (Dropdown, single-select Table, or validated Text) can be marked, via a checkbox, as one of these two fixed roles — mutually exclusive on the same widget:</p>
+          <ul>
+            <li><strong>"Is the identifier"</strong> — says which field identifies the physical unit. Used by Routes (section 11) to enforce sequence and by Genealogy (section 15) to search for a unit. Without it, that station can't be part of any route or show up in genealogy by identifier.</li>
+            <li><strong>"Is the manufacturing order"</strong> — only shows up on fields sourced from <span class="chip">ODOO_MANUFACTURING_ORDERS</span>. Says which field decides which Odoo order this submission counts toward. Used by real production tracking (section 14) — which <em>also</em> requires an identifier in that same submission.</li>
+          </ul>
+        </div>
+
+        <h3 data-lang="es">Dispositivo o evento asociado a un campo</h3>
+        <h3 data-lang="en">Device or event wired to a field</h3>
+        <div data-lang="es"><p>Cualquier campo de datos puede asociarse a un <strong>dispositivo de entrada</strong> (p. ej. un lector) o a un <strong>evento MQTT de entrada</strong> (un topic de suscripción de la app Eventos) — mutuamente excluyentes. En el runtime aparece un badge indicando el origen. Con el Player, el dato real rellena el campo solo (ver sección 10); en el navegador, un lector en emulación de teclado ya funciona igual sin más configuración.</p></div>
+        <div data-lang="en"><p>Any data field can be linked to an <strong>input device</strong> (e.g. a reader) or an <strong>incoming MQTT event</strong> (a subscribe topic from the Events app) — mutually exclusive. The runtime shows a badge naming the source. With the Player, the real data fills the field automatically (see section 10); in a browser, a keyboard-wedge reader already works the same way with no extra setup.</p></div>
+
+        <h3 data-lang="es">Código leído vs. mostrado vs. guardado</h3>
+        <h3 data-lang="en">Code read vs. shown vs. saved</h3>
+        <div data-lang="es"><p>Un lector normalmente lee un <strong>código</strong> (p. ej. la credencial <code>0001</code> de un operario), no su nombre ni su id de Odoo. La <strong>columna de coincidencia</strong> (<code>lookupColumn</code>, solo aparece con un origen Odoo) dice por qué campo de Odoo buscar ese código (p. ej. <code>barcode</code>). Al resolver: el desplegable/tabla muestra el <strong>nombre</strong> (para que el operario confirme visualmente quién/qué es), y en trazabilidad se guarda siempre el <strong>id estable de Odoo</strong> — nunca el código en bruto ni el nombre, que pueden cambiar.</p></div>
+        <div data-lang="en"><p>A reader normally reads a <strong>code</strong> (e.g. an operator's badge <code>0001</code>), not their name or Odoo id. The <strong>match column</strong> (<code>lookupColumn</code>, only shows up with an Odoo source) says which Odoo field to search that code by (e.g. <code>barcode</code>). Once resolved: the dropdown/table shows the <strong>name</strong> (so the operator visually confirms who/what it is), and traceability always saves the <strong>stable Odoo id</strong> — never the raw code or the name, which can change.</p></div>
+
+        <h3 data-lang="es">Texto validado sin lector</h3>
+        <h3 data-lang="en">Validated text without a reader</h3>
+        <div data-lang="es"><p>Un <span class="chip">TEXT_INPUT</span> sin dispositivo/evento también puede validar lo tecleado: si se le da un origen Odoo y una columna de coincidencia, cada cambio (con un pequeño retardo) se comprueba contra Odoo y avisa si el código no existe. A diferencia de un Desplegable, aquí <strong>se guarda el propio código tecleado</strong>, no un id — y el backend revalida siempre al enviar, nunca confía solo en el navegador.</p></div>
+        <div data-lang="en"><p>A <span class="chip">TEXT_INPUT</span> with no device/event can also validate what's typed: given an Odoo source and a match column, every change (after a short debounce) is checked against Odoo and warns if the code doesn't exist. Unlike a Dropdown, here <strong>the typed code itself is saved</strong>, not an id — and the backend always re-validates on submit, never trusting the browser alone.</p></div>
+
+        <h3 data-lang="es">Etiquetas vinculadas</h3>
+        <h3 data-lang="en">Bound labels</h3>
+        <div data-lang="es"><p>Una Etiqueta (<span class="chip">LABEL</span>) puede, en vez de texto fijo, <strong>vincularse</strong> (<code>boundTo</code>) a cualquier otro widget que capture datos en la misma estación, y elegir qué dato mostrar (<code>boundField</code>): el valor crudo introducido (<code>_value</code>, vale para cualquier widget), o — si el origen trae datos de Odoo — cualquier columna del registro resuelto: la fila elegida en un Desplegable o Tabla, o el registro encontrado por un Texto validado. Así una sola Etiqueta puede mostrar, por ejemplo, el departamento del operario escaneado, sin que el propio desplegable de Operario tenga que enseñarlo. En el editor se ve un valor de ejemplo (aún no hay datos reales); en producción se calcula en vivo.</p></div>
+        <div data-lang="en"><p>A Label (<span class="chip">LABEL</span>) can, instead of fixed text, be <strong>bound</strong> (<code>boundTo</code>) to any other data-capturing widget on the same station, and choose which of its data to show (<code>boundField</code>): the raw entered value (<code>_value</code>, works for any widget), or — if the source carries Odoo data — any column of the resolved record: the row chosen in a Dropdown or Table, or the record found by a validated Text field. This lets one Label show, for instance, the department of the scanned-in operator, without the Operator dropdown itself having to display it. The editor shows a sample value (no real data yet); production computes it live.</p></div>
+
+        <h3 data-lang="es">Imágenes vinculadas</h3>
+        <h3 data-lang="en">Bound images</h3>
+        <div data-lang="es"><p>El widget <span class="chip">IMAGE</span> tiene dos modos: <strong>imagen estática</strong> (se sube un fichero) o <strong>imagen vinculada</strong> (<code>imageSource</code> = <span class="chip">BOUND</span>). En modo vinculado se elige otro widget de la estación — normalmente un Desplegable o Texto validado de <strong>Productos</strong> o <strong>Operarios</strong> de Odoo — y el IMAGE muestra en vivo su campo <code>image_128</code>. Si el widget origen no tiene un campo de imagen (p. ej. una lista estática o un origen sin <code>image_128</code>), el diseñador ve un aviso y no se permite guardar la vinculación. En el editor se ve el placeholder habitual; en runtime se actualiza con la foto real del registro seleccionado.</p></div>
+        <div data-lang="en"><p>The <span class="chip">IMAGE</span> widget has two modes: <strong>static image</strong> (upload a file) or <strong>bound image</strong> (<code>imageSource</code> = <span class="chip">BOUND</span>). In bound mode you pick another widget on the station — usually a Dropdown or validated Text bound to Odoo <strong>Products</strong> or <strong>Operators</strong> — and the IMAGE shows its <code>image_128</code> field live. If the source widget has no image field (e.g. a static list or a source without <code>image_128</code>), the designer sees a warning and the binding cannot be saved. The editor shows the usual placeholder; runtime updates with the actual photo of the selected record.</p></div>
+
+        <h3 data-lang="es">Campos "sticky" y "finaliza el flujo"</h3>
+        <h3 data-lang="en">"Sticky" fields and "finishes the flow"</h3>
+        <div data-lang="es"><p><code>sticky</code> (Desplegable, Texto, Número, Tabla) evita que ese campo se limpie tras cada envío — se mantiene para la siguiente unidad (el operario de turno se elige una vez, no en cada pieza). <code>finalizesFlow</code> (Desplegable, Texto) hace que confirmar ese campo (elegir una opción, o pulsar Enter tras escanear) registre la unidad como OK al instante, sin necesitar un botón "Finalizar" aparte — pensado para estaciones de un solo gesto: escanear y listo.</p></div>
+        <div data-lang="en"><p><code>sticky</code> (Dropdown, Text, Number, Table) stops that field from clearing after each submission — it's kept for the next unit (the shift operator is picked once, not per piece). <code>finalizesFlow</code> (Dropdown, Text) makes confirming that field (choosing an option, or pressing Enter after a scan) submit the unit as OK instantly, with no separate "Finish" button needed — built for one-gesture stations: scan and done.</p></div>
+      </div>
+    </section>
+
+    <!-- 10 RUNTIME & PLAYER -->
+    <section class="section" id="runtime-player">
+      <span class="eyebrow" data-lang="es">10 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">10 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Ejecución y Manufactoo Player</h2>
+      <h2 data-lang="en">Runtime &amp; Manufactoo Player</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-lang="es">&nbsp;</th><th data-lang="en">&nbsp;</th>
+            <th data-lang="es">Modo navegador</th><th data-lang="en">Browser mode</th>
+            <th data-lang="es">Manufactoo Player</th><th data-lang="en">Manufactoo Player</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td data-lang="es">Hardware</td><td data-lang="en">Hardware</td>
+              <td colspan="1" data-lang="es">Solo emulación de teclado (lector USB-HID)</td>
+              <td colspan="1" data-lang="en">Keyboard-emulation only (USB-HID reader)</td>
+              <td colspan="1" data-lang="es">Puerto serie real, MQTT, impresoras de red</td>
+              <td colspan="1" data-lang="en">Real serial port, MQTT, network printers</td>
+            </tr>
+            <tr>
+              <td data-lang="es">Cuándo usarlo</td><td data-lang="en">When to use it</td>
+              <td data-lang="es">Estaciones simples</td><td data-lang="en">Simple stations</td>
+              <td data-lang="es">Báscula serie, PLC, impresora ZPL, MQTT</td><td data-lang="en">Serial scale, PLC, ZPL printer, MQTT</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <div data-lang="es"><p>El propio runtime decide: si algún campo de la estación referencia un dispositivo serie o un evento MQTT, se marca como "requiere Player" y, en el navegador, muestra un aviso con enlace para abrirla en él. El Player nunca empaqueta su propia copia de la interfaz — siempre carga la página en vivo del servidor, así que un cambio de diseño llega al instante a toda la planta, sin reinstalar nada.</p></div>
+        <div data-lang="en"><p>The runtime itself decides: if any field on the station references a serial device or an MQTT event, it's flagged as "requires Player" and, in the browser, shows a notice with a link to open it there instead. The Player never bundles its own copy of the UI — it always loads the live page from the server, so a design change reaches the whole floor instantly, with nothing to reinstall.</p></div>
+
+        <h3 data-lang="es">Identidad de estación: emparejamiento</h3>
+        <h3 data-lang="en">Station identity: pairing</h3>
+        <div data-lang="es"><p>Un PC de planta no necesita ninguna URL ni parámetro escrito a mano. En su primer arranque, el Player muestra un <strong>código de emparejamiento</strong> de 6 caracteres; un administrador lo ve en <em>Estaciones &gt; Players</em> y lo asigna a una estación. A partir de ahí, ese PC siempre abre esa estación al arrancar — reasignarlo a otra se hace desde el panel, sin tocar el PC.</p></div>
+        <div data-lang="en"><p>A shop-floor PC needs no URL or parameter typed by hand. On first launch, the Player shows a 6-character <strong>pairing code</strong>; an admin sees it under <em>Stations &gt; Players</em> and assigns it to a station. From then on, that PC always opens that station on boot — reassigning it to a different one is done from the panel, without touching the PC.</p></div>
+
+        <h3 data-lang="es">Actualizaciones, sin nube</h3>
+        <h3 data-lang="en">Updates, no cloud</h3>
+        <div data-lang="es"><p>El propio Player se actualiza solo desde un feed alojado por tu propio servidor Manufactoo — nunca por internet público — y se instala en segundo plano entre turnos, nunca a media tarea.</p></div>
+        <div data-lang="en"><p>The Player itself updates from a feed hosted by your own Manufactoo server — never the public internet — installing itself quietly between shifts, never mid-task.</p></div>
+      </div>
+    </section>
+
+    <!-- 11 ROUTES -->
+    <section class="section" id="routes">
+      <span class="eyebrow" data-lang="es">11 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">11 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Rutas</h2>
+      <h2 data-lang="en">Routes</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Una ruta define la secuencia de estaciones obligatoria para un producto — opcionalmente ligada a un producto concreto de Odoo, o genérica ("cualquier producto"). Cada ruta declara qué campo identifica la unidad a lo largo del recorrido (<code>identifierBindingKey</code>) — normalmente el mismo campo marcado como "Es el identificador" en cada estación.</p>
+          <p><strong data-lang="es">Cumplimiento: </strong>al enviar un registro, Manufactoo comprueba todas las rutas habilitadas que incluyen esa estación. Si el envío no trae el identificador de una ruta, esa ruta simplemente no aplica a esa unidad. Si lo trae, exige que <strong>todos los pasos anteriores</strong> ya tengan un registro con ese mismo identificador — si falta uno, rechaza el envío con un mensaje claro. Una unidad nunca puede saltarse un paso. Deshabilitar la ruta levanta la restricción al instante.</p>
+        </div>
+        <div data-lang="en">
+          <p>A route defines the mandatory sequence of stations for a product — optionally tied to a specific Odoo product, or left generic ("any product"). Every route declares which field identifies the unit along the way (<code>identifierBindingKey</code>) — usually the same field marked "Is the identifier" on each station.</p>
+          <p><strong>Enforcement:</strong> on every submission, Manufactoo checks every enabled route that includes that station. If the submission doesn't carry that route's identifier, that route simply doesn't apply to that unit. If it does, it requires that <strong>every earlier step</strong> already has a record with that same identifier — if one is missing, the submission is rejected with a clear message. A unit can never skip a step. Disabling the route lifts the restriction instantly.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 MATERIALS -->
+    <section class="section" id="materials">
+      <span class="eyebrow" data-lang="es">12 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">12 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Materiales</h2>
+      <h2 data-lang="en">Materials</h2>
+      <div class="prose">
+        <div data-lang="es"><p>Registra qué lotes/series están cargados <strong>ahora mismo</strong> en una estación — por ejemplo, los carretes de componentes de una máquina de pick&amp;place. Es un dato de presencia en la estación, no una copia del stock: el lote sigue viviendo en Odoo. Cada unidad que pasa mientras un lote está activo lo <strong>hereda automáticamente</strong> en su registro de trazabilidad, sin que el operario tenga que volver a elegirlo unidad a unidad.</p></div>
+        <div data-lang="en"><p>Tracks which lots/serials are loaded <strong>right now</strong> at a station — e.g. the component reels on a pick-and-place machine. It's presence-at-the-station data, not a copy of stock: the lot still lives in Odoo. Every unit that passes through while a lot is active <strong>automatically inherits</strong> it in its trace record, with no need for the operator to re-select it per unit.</p></div>
+      </div>
+    </section>
+
+    <!-- 13 WORK CENTERS -->
+    <section class="section" id="work-centers">
+      <span class="eyebrow" data-lang="es">13 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">13 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Work Centers</h2>
+      <h2 data-lang="en">Work Centers</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>El widget <span class="chip">WORKORDER_ACTIONS</span> añade controles de <strong>Start / Pausar / Bloquear / Finalizar</strong> más una cantidad en curso, sobre la orden de trabajo elegida en una tabla vinculada. Escribe de verdad en el propio modelo de Órdenes de trabajo de Odoo — pausar, bloquear (con motivo) y finalizar se reflejan de inmediato en Odoo, incluyendo atribuir el tiempo trabajado al operario real que fichó, no a la cuenta de integración.</p>
+        </div>
+        <div data-lang="en">
+          <p>The <span class="chip">WORKORDER_ACTIONS</span> widget adds <strong>Start / Pause / Block / Finish</strong> controls plus a running quantity, over the work order chosen in a linked table. It writes for real into Odoo's own Work Order model — pausing, blocking (with a reason) and finishing all reflect immediately in Odoo, including attributing worked time to the actual scanned-in operator, not the integration account.</p>
+        </div>
+      </div>
+      <div class="warn">
+        <strong data-lang="es">Escritura estricta</strong>
+        <strong data-lang="en">Strict write policy</strong>
+        <span data-lang="es">Si Odoo rechaza la escritura, no se guarda nada en Manufactoo tampoco — no existe un estado "pendiente de sincronizar" ni una cola de reintentos. Los dos sistemas nunca pueden divergir en silencio.</span>
+        <span data-lang="en">If Odoo rejects the write, nothing is saved on the Manufactoo side either — there is no "pending sync" state or retry queue. The two systems can never silently drift apart.</span>
+      </div>
+      <div class="prose">
+        <div data-lang="es"><p>La pantalla cruzada <strong>Work Centers</strong> muestra, de toda la planta a la vez, cada sesión activa: estación, orden de trabajo, operario, estado, tiempo transcurrido y cantidad frente al objetivo.</p></div>
+        <div data-lang="en"><p>The cross-plant <strong>Work Centers</strong> screen shows every active session at once: station, work order, operator, state, elapsed time, and quantity against target.</p></div>
+      </div>
+    </section>
+
+    <!-- 14 PRODUCTION TRACKING -->
+    <section class="section" id="production-tracking">
+      <span class="eyebrow" data-lang="es">14 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">14 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Producción real en Odoo</h2>
+      <h2 data-lang="en">Real production tracking</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Opcional, y se activa marcando un campo como "Es la orden de fabricación" en una estación. A partir de ahí, cada unidad aceptada que llegue al final de su ruta (o a una estación sin ninguna ruta) cuenta <strong>+1</strong> hacia la cantidad producida de esa orden en Odoo — en vivo, pieza a pieza, no solo cuando la orden se cierra entera.</p>
+        </div>
+        <div data-lang="en">
+          <p>Optional, turned on by marking a field as "Is the manufacturing order" on a station. From then on, every accepted unit that reaches the end of its route (or a station with no route at all) counts <strong>+1</strong> toward that order's produced quantity in Odoo — live, piece by piece, not only once the whole order closes.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong data-lang="es">Sin backorders</strong>
+        <strong data-lang="en">No backorders</strong>
+        <span data-lang="es">El descuento avanza directamente la cantidad en curso de la orden — el mismo efecto que editar a mano la cantidad "consumida" en el propio formulario de Odoo — y solo cierra la orden cuando la última unidad iguala exactamente lo planeado. Nunca deja una orden partida en dos.</span>
+        <span data-lang="en">The write-back advances the order's own in-progress quantity directly — the same effect as editing the "consumed" quantity by hand in Odoo's own form — and only closes the order once the very last unit exactly matches what was planned. It never leaves a split order behind.</span>
+      </div>
+
+      <div class="prose">
+        <div data-lang="es">
+          <p>El consumo de materia prima se calcula siempre a partir de la proporción estable de la propia Lista de materiales (cantidad del componente ÷ cantidad que produce la BOM), nunca de un campo del movimiento de stock que cambia según el progreso — evita que la ración se desvíe unidad a unidad.</p>
+        </div>
+        <div data-lang="en">
+          <p>Raw-material consumption is always computed from the Bill of Materials' own stable ratio (component quantity ÷ BOM yield), never from a stock-movement field that changes as production progresses — this prevents the ratio from drifting unit by unit.</p>
+        </div>
+
+        <h3 data-lang="es">Qué unidad exactamente</h3>
+        <h3 data-lang="en">Which unit exactly</h3>
+        <div data-lang="es"><p>Necesita, en el mismo envío, un campo marcado "Es el identificador" — así Odoo sabe a qué lote/serie concreto atribuir la unidad producida (<code>lot_producing_ids</code>).</p></div>
+        <div data-lang="en"><p>It needs, in that same submission, a field marked "Is the identifier" — so Odoo knows exactly which lot/serial to record as the produced unit (<code>lot_producing_ids</code>).</p></div>
+
+        <h3 data-lang="es">Consciente del seguimiento real del producto</h3>
+        <h3 data-lang="en">Aware of the product's real tracking</h3>
+        <div data-lang="es"><p>Manufactoo consulta en vivo si el producto de esa orden lleva seguimiento por lote/serie en Odoo. Si no lo lleva, no exige ni escribe ningún identificador. Si lo lleva, el identificador es obligatorio <strong>y</strong> tiene que pertenecer a ese mismo producto — un lote de otro producto se rechaza, nunca se acepta por error.</p></div>
+        <div data-lang="en"><p>Manufactoo checks live whether that order's product is actually lot/serial tracked in Odoo. If it isn't, no identifier is required or written. If it is, the identifier is mandatory <strong>and</strong> must belong to that same product — a lot from a different product is rejected outright, never accepted by mistake.</p></div>
+
+        <h3 data-lang="es">Solo el último paso de una ruta</h3>
+        <h3 data-lang="en">Only the last step of a route</h3>
+        <div data-lang="es"><p>Si la estación es parte de una ruta, solo la <strong>última</strong> estación de esa ruta descuenta producción — los pasos intermedios nunca cuentan, aunque también tengan un campo de orden de fabricación configurado.</p></div>
+        <div data-lang="en"><p>If the station is part of a route, only the <strong>last</strong> station of that route deducts production — intermediate steps never count, even if they also happen to have a manufacturing-order field configured.</p></div>
+      </div>
+    </section>
+
+    <!-- 15 GENEALOGY -->
+    <section class="section" id="genealogy">
+      <span class="eyebrow" data-lang="es">15 · Trazabilidad y Genealogía</span>
+      <span class="eyebrow" data-lang="en">15 · Traceability &amp; Genealogy</span>
+      <h2 data-lang="es">Genealogía</h2>
+      <h2 data-lang="en">Genealogy</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Busca cualquier unidad por su identificador y ve su recorrido completo: cada estación por la que pasó, en orden, con el operario, la fecha/hora y todo lo que se capturó en ese paso. También lista la actividad más reciente de toda la planta, para un vistazo rápido sin buscar una unidad concreta.</p>
+          <p>Se construye enteramente a partir de los mismos registros inmutables que ya genera cada envío de estación — no hace falta configurar nada más allá de marcar un campo como "Es el identificador" en algún punto de la secuencia.</p>
+        </div>
+        <div data-lang="en">
+          <p>Search any unit by its identifier and see its full path: every station it passed through, in order, with the operator, timestamp, and everything captured at that step. It also lists the plant's most recent activity, for a quick glance without hunting for a specific unit.</p>
+          <p>It's built entirely from the same immutable records every station submission already produces — nothing else to configure beyond marking a field as "Is the identifier" somewhere in the sequence.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section class="section" id="roadmap">
+      <span class="eyebrow" data-lang="es">Próximas apps</span>
+      <span class="eyebrow" data-lang="en">More apps</span>
+      <h2 data-lang="es">Pensado para crecer</h2>
+      <h2 data-lang="en">Built to grow</h2>
+      <div class="prose">
+        <div data-lang="es">
+          <p>Trazabilidad y Genealogía es la <strong>primera</strong> app de Manufactoo, no la única prevista. El marco de aplicaciones (instalar/desinstalar, un grupo de menú propio por app) ya está construido para que futuras apps se añadan de forma independiente, sin tocar las que ya existen — esta página de documentación crecerá con ellas, con una sección nueva por cada una, igual que la sección 07 lo hace hoy para Trazabilidad y Genealogía.</p>
+        </div>
+        <div data-lang="en">
+          <p>Traceability &amp; Genealogy is Manufactoo's <strong>first</strong> app, not the only one planned. The apps framework (install/uninstall, its own menu group per app) is already built so future apps can be added independently, without touching the ones that already exist — this documentation page will grow with them, with a new section for each one, the same way section 07 does today for Traceability &amp; Genealogy.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- GLOSSARY -->
+    <section class="section" id="glossary">
+      <span class="eyebrow" data-lang="es">Referencia</span>
+      <span class="eyebrow" data-lang="en">Reference</span>
+      <h2 data-lang="es">Glosario</h2>
+      <h2 data-lang="en">Glossary</h2>
+      <dl class="kv">
+        <dt data-lang="es">Estación</dt><dt data-lang="en">Station</dt>
+        <dd data-lang="es">Una secuencia de pantallas diseñada sin código y ejecutada en un puesto físico de la planta.</dd>
+        <dd data-lang="en">A no-code screen sequence, run at a physical spot on the shop floor.</dd>
+
+        <dt data-lang="es">Widget</dt><dt data-lang="en">Widget</dt>
+        <dd data-lang="es">Un control o campo colocado en una pantalla de una estación (ver catálogo, sección 09).</dd>
+        <dd data-lang="en">A control or field placed on a station screen (see catalog, section 09).</dd>
+
+        <dt data-lang="es">Manufactoo Player</dt><dt data-lang="en">Manufactoo Player</dt>
+        <dd data-lang="es">App de escritorio (Electron) para el hardware que un navegador no puede tocar (sección 10).</dd>
+        <dd data-lang="en">The desktop app (Electron) for hardware a browser can't reach (section 10).</dd>
+
+        <dt data-lang="es">Ruta</dt><dt data-lang="en">Route</dt>
+        <dd data-lang="es">La secuencia de estaciones obligatoria para un producto (sección 11).</dd>
+        <dd data-lang="en">The mandatory station sequence for a product (section 11).</dd>
+
+        <dt>MO</dt><dt>MO</dt>
+        <dd data-lang="es">Orden de fabricación de Odoo (<code>mrp.production</code>).</dd>
+        <dd data-lang="en">Odoo Manufacturing Order (<code>mrp.production</code>).</dd>
+
+        <dt>WO</dt><dt>WO</dt>
+        <dd data-lang="es">Orden de trabajo de Odoo (<code>mrp.workorder</code>) — una operación concreta dentro de una MO.</dd>
+        <dd data-lang="en">Odoo Work Order (<code>mrp.workorder</code>) — a single operation within an MO.</dd>
+
+        <dt>BOM</dt><dt>BOM</dt>
+        <dd data-lang="es">Lista de materiales de Odoo (<code>mrp.bom</code>).</dd>
+        <dd data-lang="en">Odoo Bill of Materials (<code>mrp.bom</code>).</dd>
+
+        <dt data-lang="es">Work Center</dt><dt data-lang="en">Work Center</dt>
+        <dd data-lang="es">Un recurso, máquina o línea de Odoo (<code>mrp.workcenter</code>) al que se puede asociar una estación.</dd>
+        <dd data-lang="en">An Odoo resource, machine or line (<code>mrp.workcenter</code>) a station can be linked to.</dd>
+
+        <dt data-lang="es">Lote/Serie</dt><dt data-lang="en">Lot/Serial</dt>
+        <dd data-lang="es">Un <code>stock.lot</code> de Odoo — la unidad física concreta que se está fabricando o consumiendo.</dd>
+        <dd data-lang="en">An Odoo <code>stock.lot</code> — the specific physical unit being made or consumed.</dd>
+      </dl>
+    </section>
+
+    <nav class="page-nav" id="page-nav" aria-label="pagina anterior / siguiente"></nav>
+
+    <footer>
+      <span data-lang="es">Manufactoo — MES de código abierto y sin código. Licencia LGPL-3.0. Este documento describe el estado actual del producto y crecerá según se añadan nuevas apps.</span>
+      <span data-lang="en">Manufactoo — open-source, no-code MES. LGPL-3.0 license. This document describes the product's current state and will grow as new apps are added.</span>
+    </footer>
+
+  </main>
+</div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('doc-root');
+  var picker = document.getElementById('lang-picker');
+  var mobileJump = document.getElementById('mobile-jump');
+
+  var mobileJumpOptions = Array.prototype.slice.call(mobileJump.options);
+
+  function setLang(lang) {
+    root.setAttribute('data-doclang', lang);
+    picker.value = lang;
+    // <option> no obedece [data-lang]/display de forma fiable en un <select>,
+    // asi que aqui se reescribe el texto visible a partir de data-es/data-en
+    // en vez de esconder/mostrar opciones duplicadas (ver CSS: solo td/th/li
+    // tienen su propio caso especial de "display", option no).
+    mobileJumpOptions.forEach(function (opt) {
+      opt.textContent = opt.getAttribute('data-' + lang) || opt.getAttribute('data-es');
+    });
+    try { localStorage.setItem('manufactoo-docs-lang', lang); } catch (e) {}
+  }
+
+  var stored = null;
+  try { stored = localStorage.getItem('manufactoo-docs-lang'); } catch (e) {}
+  if (stored === 'es' || stored === 'en') {
+    setLang(stored);
+  } else {
+    var browserLang = (navigator.language || 'es').slice(0, 2);
+    setLang(browserLang === 'es' ? 'es' : 'en');
+  }
+
+  picker.addEventListener('change', function () { setLang(picker.value); });
+
+  // ---- Tema claro/oscuro propio de la pagina --------------------------
+  // Prioridad al resolver que tema esta activo AHORA MISMO (no solo al
+  // guardado): 1) lo que el usuario eligio aqui antes (localStorage), 2) el
+  // data-theme que el propio host (visor de Claude) ya haya puesto en el
+  // <html> real, 3) prefers-color-scheme del sistema. Solo se escribe
+  // data-theme en #doc-root cuando el usuario pulsa el boton -- hasta
+  // entonces la pagina sigue heredando el tema del host sin que esta pagina
+  // se entrometa.
+  var themeToggle = document.getElementById('theme-toggle');
+  var darkMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function effectiveTheme() {
+    var own = root.getAttribute('data-theme');
+    if (own === 'dark' || own === 'light') return own;
+    var hostTheme = document.documentElement.getAttribute('data-theme');
+    if (hostTheme === 'dark' || hostTheme === 'light') return hostTheme;
+    return darkMedia && darkMedia.matches ? 'dark' : 'light';
+  }
+
+  function updateToggleIcon() {
+    themeToggle.setAttribute('data-mode', effectiveTheme());
+  }
+
+  var storedTheme = null;
+  try { storedTheme = localStorage.getItem('manufactoo-docs-theme'); } catch (e) {}
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    root.setAttribute('data-theme', storedTheme);
+  }
+  updateToggleIcon();
+
+  themeToggle.addEventListener('click', function () {
+    var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('manufactoo-docs-theme', next); } catch (e) {}
+    updateToggleIcon();
+  });
+
+  // Si el usuario nunca ha tocado el boton en esta pagina, seguir
+  // reflejando en vivo un cambio de preferencia del sistema (mismo
+  // comportamiento "ambos temas, con cuidado" que el resto de la pagina).
+  if (darkMedia && darkMedia.addEventListener) {
+    darkMedia.addEventListener('change', function () {
+      if (!root.getAttribute('data-theme')) updateToggleIcon();
+    });
+  }
+
+  // ---- Enrutado: cada apartado es su propia pagina --------------------
+  // Un solo fichero, pero SOLO una .section visible a la vez (is-active),
+  // con su propio breadcrumb y navegacion anterior/siguiente -- en vez de
+  // todo en scroll continuo (ver conversacion 2026-08-08). El orden de
+  // este array es tambien el orden de "Anterior/Siguiente".
+  var G_GEN = { es: 'General', en: 'General' };
+  var G_APP = { es: 'App · Trazabilidad y Genealogía', en: 'App · Traceability & Genealogy' };
+  var G_MORE = { es: 'Más apps', en: 'More apps' };
+  var G_REF = { es: 'Referencia', en: 'Reference' };
+  var PAGES = [
+    { id: 'overview', group: G_GEN, title: { es: 'Qué es Manufactoo', en: 'What is Manufactoo' } },
+    { id: 'getting-started', group: G_GEN, title: { es: 'Primeros pasos', en: 'Getting started' } },
+    { id: 'core-dashboard', group: G_GEN, title: { es: 'Panel principal', en: 'Dashboard' } },
+    { id: 'core-master-data', group: G_GEN, title: { es: 'Datos maestros', en: 'Master data' } },
+    { id: 'core-apps', group: G_GEN, title: { es: 'Aplicaciones', en: 'Apps' } },
+    { id: 'core-settings', group: G_GEN, title: { es: 'Configuración', en: 'Settings' } },
+    { id: 'core-security', group: G_GEN, title: { es: 'Seguridad y conexión', en: 'Security & connection' } },
+    { id: 'app-traceability', group: G_APP, title: { es: 'Presentación', en: 'Overview' } },
+    { id: 'devices', group: G_APP, title: { es: 'Dispositivos y eventos', en: 'Devices & events' } },
+    { id: 'station-builder', group: G_APP, title: { es: 'Diseñador de estaciones', en: 'Station builder' } },
+    { id: 'runtime-player', group: G_APP, title: { es: 'Ejecución y Player', en: 'Runtime & Player' } },
+    { id: 'routes', group: G_APP, title: { es: 'Rutas', en: 'Routes' } },
+    { id: 'materials', group: G_APP, title: { es: 'Materiales', en: 'Materials' } },
+    { id: 'work-centers', group: G_APP, title: { es: 'Work Centers', en: 'Work Centers' } },
+    { id: 'production-tracking', group: G_APP, title: { es: 'Producción en Odoo', en: 'Production tracking' } },
+    { id: 'genealogy', group: G_APP, title: { es: 'Genealogía', en: 'Genealogy' } },
+    { id: 'roadmap', group: G_MORE, title: { es: 'Próximamente', en: 'Coming later' } },
+    { id: 'glossary', group: G_REF, title: { es: 'Glosario', en: 'Glossary' } }
+  ];
+  var PAGE_IDS = PAGES.map(function (p) { return p.id; });
+  var breadcrumbEl = document.getElementById('breadcrumb');
+  var pageNavEl = document.getElementById('page-nav');
+  var navlinks = Array.prototype.slice.call(document.querySelectorAll('.navlink[href^="#"]'));
+  var currentPageId = PAGES[0].id;
+
+  function currentLang() { return root.getAttribute('data-doclang') === 'en' ? 'en' : 'es'; }
+
+  function renderBreadcrumb(page) {
+    var lang = currentLang();
+    var rootLabel = lang === 'es' ? 'Documentación' : 'Documentation';
+    breadcrumbEl.innerHTML =
+      '<a href="#overview">' + rootLabel + '</a>' +
+      '<span class="crumb-sep">/</span>' +
+      '<span>' + page.group[lang] + '</span>' +
+      '<span class="crumb-sep">/</span>' +
+      '<span class="crumb-current">' + page.title[lang] + '</span>';
+  }
+
+  function renderPageNav(index) {
+    var lang = currentLang();
+    var prev = PAGES[index - 1];
+    var next = PAGES[index + 1];
+    var prevLabel = lang === 'es' ? 'Anterior' : 'Previous';
+    var nextLabel = lang === 'es' ? 'Siguiente' : 'Next';
+    var prevHtml = prev
+      ? '<a class="page-nav-link prev" href="#' + prev.id + '"><span class="nav-dir">← ' + prevLabel + '</span><span class="nav-title">' + prev.title[lang] + '</span></a>'
+      : '<span class="page-nav-link prev-empty"></span>';
+    var nextHtml = next
+      ? '<a class="page-nav-link next" href="#' + next.id + '"><span class="nav-dir">' + nextLabel + ' →</span><span class="nav-title">' + next.title[lang] + '</span></a>'
+      : '<span class="page-nav-link next-empty"></span>';
+    pageNavEl.innerHTML = prevHtml + nextHtml;
+  }
+
+  function showPage(id) {
+    var index = PAGE_IDS.indexOf(id);
+    if (index === -1) { index = 0; id = PAGE_IDS[0]; }
+    currentPageId = id;
+    document.querySelectorAll('.section').forEach(function (s) {
+      s.classList.toggle('is-active', s.id === id);
+    });
+    renderBreadcrumb(PAGES[index]);
+    renderPageNav(index);
+    navlinks.forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+    });
+    document.title = PAGES[index].title[currentLang()] + ' — Manufactoo Docs';
+    window.scrollTo(0, 0);
+  }
+
+  window.addEventListener('hashchange', function () {
+    showPage(location.hash.replace('#', ''));
+  });
+
+  mobileJump.addEventListener('change', function () {
+    location.hash = mobileJump.value;
+  });
+
+  showPage(location.hash.replace('#', '') || PAGES[0].id);
+
+  // setLang ya existe arriba (cambia data-doclang + textos [data-lang]).
+  // Se reasigna aqui para que tambien refresque breadcrumb/prev-next --
+  // esos los genera JS, no el CSS [data-lang], asi que no cambiarian solos.
+  // El listener de picker ya registrado mas arriba sigue viendo esta misma
+  // variable por cierre (closure), no hace falta re-engancharlo.
+  var originalSetLang = setLang;
+  setLang = function (lang) {
+    originalSetLang(lang);
+    var index = PAGE_IDS.indexOf(currentPageId);
+    if (index === -1) index = 0;
+    renderBreadcrumb(PAGES[index]);
+    renderPageNav(index);
+  };
+})();
+</script>

@@ -40,9 +40,10 @@ public class StationTraceRecord {
     private Map<String, Object> capturedData = new LinkedHashMap<>();
 
     /**
-     * Foto congelada de que clave(s) de identificador de ruta (p. ej.
-     * "Serial") se le aplicaban a ESTE registro en el momento de guardarse
-     * (ver StationService.validateRouteSequence) -- usada por la Genealogia
+     * Foto congelada de que clave(s) de identificador (la fija "identifier"
+     * del checkbox de la estacion, y/o la de alguna ruta con clave legada
+     * distinta) se le aplicaban a ESTE registro en el momento de guardarse
+     * (ver StationService.resolveIdentifierKeys) -- usada por la Genealogia
      * para agrupar unidades entre estaciones sin depender de la
      * configuracion ACTUAL de la ruta, que puede cambiar despues.
      */
@@ -56,7 +57,7 @@ public class StationTraceRecord {
      * null significa "esta estacion no usa el concepto de OK/NG", no "fallo" --
      * asi las estaciones existentes sin estos botones se comportan igual que
      * antes. Un NG bloquea el siguiente paso de cualquier ruta que use el
-     * identificador de este registro (ver StationService.validateRouteSequence).
+     * identificador de este registro (ver StationService.resolveIdentifierKeys).
      */
     @Column(name = "result", length = 10)
     private String result;

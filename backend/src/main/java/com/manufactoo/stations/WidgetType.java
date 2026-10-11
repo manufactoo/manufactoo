@@ -47,5 +47,16 @@ public enum WidgetType {
      * pagina de Registros. No requiere binding ni origen de datos propio (ver
      * conversacion 2026-08-02).
      */
-    STATION_HISTORY
+    STATION_HISTORY,
+    /**
+     * Start/Pausar/Bloquear/Finalizar + cantidad sobre el work order
+     * seleccionado en una TABLE(ODOO_WORKORDERS) vinculada (config.boundTo,
+     * igual mecanismo que ya usa LABEL) -- escribe de verdad en Odoo
+     * (mrp.workorder/mrp.workcenter.productivity, ver OdooShopFloorService) y
+     * lleva ademas su propia sesion local (WorkOrderSessionService). No
+     * requiere binding ni origen de datos propio: su "dato" es el work order
+     * ya seleccionado en la tabla vinculada, no algo que rellene el operario
+     * (ver conversacion 2026-08-05).
+     */
+    WORKORDER_ACTIONS
 }
